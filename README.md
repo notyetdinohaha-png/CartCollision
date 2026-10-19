@@ -1,6 +1,6 @@
 # CartCollision — моделирование неупругого столкновения тележек
 
-![Столкновение тележек](images/monkeycart.jpeg)
+![Столкновение тележек](images/monkeycart.jpg)
 
 ## О проекте
 
