@@ -29,7 +29,7 @@ namespace CartCollision
         {
             try
             {
-                // чтение параметров из текстовых полей
+                // чтение параметров из текстовых полейDDS
                 double m1 = double.Parse(txtM1.Text);
                 double m2 = double.Parse(txtM2.Text);
                 double v1 = double.Parse(txtV1.Text);
