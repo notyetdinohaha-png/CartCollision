@@ -163,10 +163,10 @@ namespace CartCollision
             }
 
             // Вывод данных в метки на форме
-            time.Text = $"time: {currentTime:F2} с";
+            time.Text = $"Время: {currentTime:F2} с";
             S1.Text = $"S1: {v1:F2} м/с";
             S2.Text = $"S2: {v2:F2} м/с";
-            s12.Text = $"s12: {commonVelocity:F2} м/с";
+            s12.Text = $"Скорость после столкновения: {commonVelocity:F2} м/с";
 
             // Перерисовка холста
             panel1.Invalidate();
@@ -202,7 +202,7 @@ namespace CartCollision
             if (isCollided)
             {
                 float impactX = (x1 + x2 + cartWidth) / 2;
-                g.DrawString("💥 УДАР!", new Font("Arial", 12, FontStyle.Bold), Brushes.Red, impactX - 25, groundY - 25);
+                g.DrawString("СТОЛКНОВЕНИЕ!", new Font("Arial", 12, FontStyle.Bold), Brushes.Red, impactX - 25, groundY - 25);
             }
         }
 
