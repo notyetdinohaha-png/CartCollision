@@ -50,6 +50,7 @@
             this.txtM1.Name = "txtM1";
             this.txtM1.Size = new System.Drawing.Size(100, 26);
             this.txtM1.TabIndex = 0;
+            this.txtM1.Text = "10";
             // 
             // txtV1
             // 
@@ -57,6 +58,7 @@
             this.txtV1.Name = "txtV1";
             this.txtV1.Size = new System.Drawing.Size(100, 26);
             this.txtV1.TabIndex = 1;
+            this.txtV1.Text = "20";
             // 
             // txtM2
             // 
@@ -64,6 +66,7 @@
             this.txtM2.Name = "txtM2";
             this.txtM2.Size = new System.Drawing.Size(100, 26);
             this.txtM2.TabIndex = 2;
+            this.txtM2.Text = "15";
             // 
             // txtV2
             // 
@@ -71,10 +74,12 @@
             this.txtV2.Name = "txtV2";
             this.txtV2.Size = new System.Drawing.Size(100, 26);
             this.txtV2.TabIndex = 3;
+            this.txtV2.Text = "25";
             // 
             // lblM1
             // 
             this.lblM1.AutoSize = true;
+            this.lblM1.BackColor = System.Drawing.SystemColors.Control;
             this.lblM1.Location = new System.Drawing.Point(156, 31);
             this.lblM1.Name = "lblM1";
             this.lblM1.Size = new System.Drawing.Size(120, 20);
@@ -84,6 +89,7 @@
             // lblM2
             // 
             this.lblM2.AutoSize = true;
+            this.lblM2.BackColor = System.Drawing.SystemColors.Control;
             this.lblM2.Location = new System.Drawing.Point(156, 131);
             this.lblM2.Name = "lblM2";
             this.lblM2.Size = new System.Drawing.Size(120, 20);
@@ -93,6 +99,7 @@
             // lblV1
             // 
             this.lblV1.AutoSize = true;
+            this.lblV1.BackColor = System.Drawing.SystemColors.Control;
             this.lblV1.Location = new System.Drawing.Point(156, 78);
             this.lblV1.Name = "lblV1";
             this.lblV1.Size = new System.Drawing.Size(114, 20);
@@ -102,6 +109,7 @@
             // lblV2
             // 
             this.lblV2.AutoSize = true;
+            this.lblV2.BackColor = System.Drawing.SystemColors.Control;
             this.lblV2.Location = new System.Drawing.Point(156, 178);
             this.lblV2.Name = "lblV2";
             this.lblV2.Size = new System.Drawing.Size(114, 20);
@@ -131,9 +139,9 @@
             // pnlCanvas
             // 
             this.pnlCanvas.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.pnlCanvas.Location = new System.Drawing.Point(414, 26);
+            this.pnlCanvas.Location = new System.Drawing.Point(349, 26);
             this.pnlCanvas.Name = "pnlCanvas";
-            this.pnlCanvas.Size = new System.Drawing.Size(918, 379);
+            this.pnlCanvas.Size = new System.Drawing.Size(647, 379);
             this.pnlCanvas.TabIndex = 10;
             this.pnlCanvas.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlCanvas_Paint);
             // 
@@ -145,6 +153,7 @@
             // lblResult
             // 
             this.lblResult.AutoSize = true;
+            this.lblResult.BackColor = System.Drawing.SystemColors.Control;
             this.lblResult.Location = new System.Drawing.Point(29, 385);
             this.lblResult.Name = "lblResult";
             this.lblResult.Size = new System.Drawing.Size(241, 20);
@@ -156,7 +165,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.ActiveCaption;
-            this.ClientSize = new System.Drawing.Size(1417, 464);
+            this.ClientSize = new System.Drawing.Size(1062, 464);
             this.Controls.Add(this.lblResult);
             this.Controls.Add(this.pnlCanvas);
             this.Controls.Add(this.btnReset);
