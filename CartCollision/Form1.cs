@@ -12,7 +12,7 @@ namespace CartCollision
 {
     public partial class Form1 : Form
     {
-        // Переменные для симуляции физики движения
+        // переменные для симуляции физики движения
         private float x1, x2;
         private float v1, v2;
         private float m1, m2;
@@ -24,47 +24,44 @@ namespace CartCollision
         private const int cartWidth = 60;
         private const int cartHeight = 40;
 
-        // Создаем таймер программно
+        // таймер анимации
         private Timer simulationTimer;
 
         public Form1()
         {
             InitializeComponent();
 
-            // Инициализация таймера
+            // инициализация таймера
             simulationTimer = new Timer();
             simulationTimer.Interval = 50;
             simulationTimer.Tick += Timer1_Tick;
 
-            // Включаем двойную буферизацию для panel1, чтобы анимация не мерцала
+            // включаем двойную буферизацию для panel1, чтобы анимация не мерцала
             typeof(Panel).InvokeMember("DoubleBuffered",
                 System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
                 null, panel1, new object[] { true });
 
-            // Заполняем выпадающие списки цветов при запуске
+            // заполняем выпадающие списки цветов при запуске
             string[] colors = { "Красный", "Синий", "Зелёный", "Жёлтый", "Оранжевый", "Фиолетовый", "Розовый", "Бирюзовый" };
             comboBox1.Items.AddRange(colors);
             comboBox2.Items.AddRange(colors);
 
-            if (comboBox1.Items.Count > 0) comboBox1.SelectedIndex = 0; // Красный
-            if (comboBox2.Items.Count > 1) comboBox2.SelectedIndex = 1; // Синий
+            if (comboBox1.Items.Count > 0) comboBox1.SelectedIndex = 0; 
+            if (comboBox2.Items.Count > 1) comboBox2.SelectedIndex = 1; 
 
-            // Принудительно привязываем события в коде (чтобы они точно работали для обоих списков)
             comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
             comboBox2.SelectedIndexChanged += comboBox2_SelectedIndexChanged;
 
-            // Устанавливаем начальные цвета и позиции тележек СРАЗУ при запуске
             color1 = MapColor(comboBox1.SelectedItem.ToString());
             color2 = MapColor(comboBox2.SelectedItem.ToString());
 
-            x1 = 20;  // Левая тележка у начала панели
-            x2 = 350; // Правая тележка ближе к правому краю
+            x1 = 20;
+            x2 = 350;
         }
-
 
         private void button1_Click(object sender, EventArgs e)
         {
-            // 1. Проверка введенных данных первой тележки
+            // 1)проверка введенных данных первой тележки
             if (!double.TryParse(textBox1.Text, out double mass1) || mass1 <= 0)
             {
                 errorProvider1.SetError(textBox1, "Введите корректную массу первой тележки!");
@@ -76,7 +73,7 @@ namespace CartCollision
                 return;
             }
 
-            // 2. Проверка введенных данных второй тележки
+            // 2)проверка введенных данных второй тележки
             if (!double.TryParse(textBox3.Text, out double mass2) || mass2 <= 0)
             {
                 errorProvider1.SetError(textBox3, "Введите корректную массу второй тележки!");
@@ -90,7 +87,7 @@ namespace CartCollision
 
             errorProvider1.Clear();
 
-            // 3. Считываем выбранные цвета
+            // 3)считываем выбранные цвета
             string colorName1 = comboBox1.SelectedItem?.ToString() ?? "Красный";
             string colorName2 = comboBox2.SelectedItem?.ToString() ?? "Синий";
 
@@ -103,13 +100,19 @@ namespace CartCollision
             color1 = MapColor(colorName1);
             color2 = MapColor(colorName2);
 
-            // 4. Инициализация и запуск физики
+            // 4)инициализация параметров физики
             m1 = (float)mass1;
-            v1 = (float)vel1;              // Первая тележка едет вправо
+            v1 = (float)vel1;
             m2 = (float)mass2;
-            v2 = (float)(-Math.Abs(vel2)); // Вторая тележка едет НАВСТРЕЧУ влево
+            v2 = (float)vel2;
 
-            // Возвращаем тележки на исходные стартовые позиции перед началом движения
+            // вторая тележка едет навстречу, хотя на самом деле пофиг
+            if (v2 > 0)
+            {
+                v2 = -v2;
+            }
+
+            // начальные позиции
             x1 = 20;
             x2 = Math.Max(panel1.Width - 100, 300);
 
@@ -117,44 +120,71 @@ namespace CartCollision
             isCollided = false;
             commonVelocity = 0f;
 
-            simulationTimer.Start(); // Запуск анимации
+            if (lblPhysicsCheck != null)
+                lblPhysicsCheck.Text = "Проверка: ожидание удара...";
+            if (s12 != null)
+                s12.Text = "Скорость после столкновения: -";
+
+            simulationTimer.Start(); // запуск анимации
         }
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
             float dt = 0.05f;
+            float speedScale = 20f; // коэффициент скорости анимации
             currentTime += dt;
 
             if (!isCollided)
             {
-                // Движение до столкновения
-                x1 += v1 * dt * 20;
-                x2 += v2 * dt * 20;
+                // движение до столкновения
+                x1 += v1 * dt * speedScale;
+                x2 += v2 * dt * speedScale;
 
-                // Момент столкновения
+                // момент столкновения
                 if (x1 + cartWidth >= x2)
                 {
                     isCollided = true;
-                    // Абсолютно неупругий удар: общая скорость
+
+                    // проверка закона сохранения импульса 
+
+                    // импульс до удара
+                    float pBefore = (m1 * v1) + (m2 * v2);
+
+                    // рассчет скорости после удара 
                     commonVelocity = (m1 * v1 + m2 * v2) / (m1 + m2);
+
+                    // импульс после удара 
+                    float pAfter = (m1 + m2) * commonVelocity;
+
+                    // проверка с учетом погрености 
+                    bool isPhysicsCorrect = Math.Abs(pBefore - pAfter) < 0.0001f;
+                    string checkResult = isPhysicsCorrect ? "Успешно (импульс сохранен)" : "Ошибка расчета!";
+
+                    // выводим результат в лейбл 
+                    if (lblPhysicsCheck != null)
+                    {
+                        lblPhysicsCheck.Text = $"Проверка: {checkResult} | До: {pBefore:F1} | После: {pAfter:F1}";
+                    }
+
+                    // обновляем скорости тележек 
                     v1 = commonVelocity;
                     v2 = commonVelocity;
                 }
             }
             else
             {
-                // Движение после столкновения с общей скоростью
-                x1 += commonVelocity * dt * 20;
-                x2 += commonVelocity * dt * 20;
+                // дивжение после столкновения 
+                x1 += commonVelocity * dt * speedScale;
+                x2 += commonVelocity * dt * speedScale;
 
-                // Ограничение у левого края панели
+                // ограничение по левому краю
                 if (x1 < 0)
                 {
                     x1 = 0;
                     simulationTimer.Stop();
                 }
 
-                // Ограничение у правого края панели
+                // ограничение по правому краю 
                 if (x2 + cartWidth > panel1.Width)
                 {
                     x2 = panel1.Width - cartWidth;
@@ -162,13 +192,13 @@ namespace CartCollision
                 }
             }
 
-            // Вывод данных в метки на форме
-            time.Text = $"Время: {currentTime:F2} с";
-            S1.Text = $"S1: {v1:F2} м/с";
-            S2.Text = $"S2: {v2:F2} м/с";
-            s12.Text = $"Скорость после столкновения: {commonVelocity:F2} м/с";
+            // вывод текущих данных в метки на форме
+            if (time != null) time.Text = $"Время: {currentTime:F2} с";
+            if (S1 != null) S1.Text = $"S1: {v1:F2} м/с";
+            if (S2 != null) S2.Text = $"S2: {v2:F2} м/с";
+            if (s12 != null) s12.Text = $"Скорость после столкновения: {commonVelocity:F2} м/с";
 
-            // Перерисовка холста
+            // перерисовка 
             panel1.Invalidate();
         }
 
@@ -179,10 +209,10 @@ namespace CartCollision
 
             int groundY = panel1.Height - 60;
 
-            // Рисуем дорогу
+            // рисуем дорогу
             g.DrawLine(Pens.Black, 0, groundY + cartHeight, panel1.Width, groundY + cartHeight);
 
-            // Тележка 1
+            // тележка 1
             using (Brush b1 = new SolidBrush(color1))
             {
                 g.FillRectangle(b1, x1, groundY, cartWidth, cartHeight);
@@ -190,7 +220,7 @@ namespace CartCollision
                 g.FillEllipse(Brushes.DarkGray, x1 + cartWidth - 15, groundY + cartHeight - 5, 10, 10);
             }
 
-            // Тележка 2
+            // тележка 2
             using (Brush b2 = new SolidBrush(color2))
             {
                 g.FillRectangle(b2, x2, groundY, cartWidth, cartHeight);
@@ -198,11 +228,11 @@ namespace CartCollision
                 g.FillEllipse(Brushes.DarkGray, x2 + cartWidth - 15, groundY + cartHeight - 5, 10, 10);
             }
 
-            // Эффект удара
+            // эффект удара что капец взрывы смерть 
             if (isCollided)
             {
                 float impactX = (x1 + x2 + cartWidth) / 2;
-                g.DrawString("СТОЛКНОВЕНИЕ!", new Font("Arial", 12, FontStyle.Bold), Brushes.Red, impactX - 25, groundY - 25);
+                g.DrawString("СТОЛКНОВЕНИЕ!", new Font("Arial", 12, FontStyle.Bold), Brushes.Red, impactX - 50, groundY - 30);
             }
         }
 
@@ -222,7 +252,6 @@ namespace CartCollision
             }
         }
 
-        // Мгновенное обновление цвета первой тележки
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (comboBox1.SelectedItem != null)
@@ -232,7 +261,6 @@ namespace CartCollision
             }
         }
 
-        // Мгновенное обновление цвета второй тележки
         private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (comboBox2.SelectedItem != null)
@@ -242,7 +270,7 @@ namespace CartCollision
             }
         }
 
-        // Остальные заглушки
+        // заглушки для событий
         private void timer1_Click(object sender, EventArgs e) { }
         private void label2_Click(object sender, EventArgs e) { }
         private void label14_Click(object sender, EventArgs e) { }
@@ -255,11 +283,6 @@ namespace CartCollision
         private void label6_Click(object sender, EventArgs e) { }
         private void S1_Click(object sender, EventArgs e) { }
         private void S2_Click(object sender, EventArgs e) { }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-
-        }
-
+        private void Form1_Load(object sender, EventArgs e) { }
     }
 }
