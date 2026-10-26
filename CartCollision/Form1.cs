@@ -61,6 +61,7 @@ namespace CartCollision
             x2 = 350; // Правая тележка ближе к правому краю
         }
 
+
         private void button1_Click(object sender, EventArgs e)
         {
             // 1. Проверка введенных данных первой тележки
@@ -254,5 +255,11 @@ namespace CartCollision
         private void label6_Click(object sender, EventArgs e) { }
         private void S1_Click(object sender, EventArgs e) { }
         private void S2_Click(object sender, EventArgs e) { }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
     }
 }
