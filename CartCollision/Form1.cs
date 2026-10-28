@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using CartCollision.Core;
 
 namespace CartCollision
 {
@@ -16,8 +18,11 @@ namespace CartCollision
         private float x1, x2;
         private float v1, v2;
         private float m1, m2;
+        private float initialV1, initialV2;
         private Color color1, color2;
         private float currentTime = 0f;
+        private System.Diagnostics.Stopwatch realTimer =
+    new System.Diagnostics.Stopwatch();
         private bool isCollided = false;
         private float commonVelocity = 0f;
 
@@ -67,27 +72,44 @@ namespace CartCollision
             x2 = 350;
         }
 
+
+        private bool TryParseFlexibleDouble(string text, out double value)
+        {
+            text = text.Trim().Replace(',', '.');
+
+            bool parsed = double.TryParse(
+                text,
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out value);
+
+            return parsed &&
+                   !double.IsNaN(value) &&
+                   !double.IsInfinity(value);
+        }
+
+
         private void button1_Click(object sender, EventArgs e)
         {
             // 1) Проверка введенных данных первой тележки
-            if (!double.TryParse(textBox1.Text, out double mass1) || mass1 <= 0)
+            if (!TryParseFlexibleDouble(textBox1.Text, out double mass1) || mass1 <= 0)
             {
                 errorProvider1.SetError(textBox1, "Введите корректную массу первой тележки!");
                 return;
             }
-            if (!double.TryParse(textBox2.Text, out double vel1))
+            if (!TryParseFlexibleDouble(textBox2.Text, out double vel1))
             {
                 errorProvider1.SetError(textBox2, "Введите корректную скорость первой тележки!");
                 return;
             }
 
             // 2) Проверка введенных данных второй тележки
-            if (!double.TryParse(textBox3.Text, out double mass2) || mass2 <= 0)
+            if (!TryParseFlexibleDouble(textBox3.Text, out double mass2) || mass2 <= 0)
             {
                 errorProvider1.SetError(textBox3, "Введите корректную массу второй тележки!");
                 return;
             }
-            if (!double.TryParse(textBox4.Text, out double vel2))
+            if (!TryParseFlexibleDouble(textBox4.Text, out double vel2))
             {
                 errorProvider1.SetError(textBox4, "Введите корректную скорость второй тележки!");
                 return;
@@ -113,6 +135,8 @@ namespace CartCollision
             v1 = (float)vel1;
             m2 = (float)mass2;
             v2 = (float)vel2;
+            initialV1 = v1;
+            initialV2 = v2;
 
             // Начальные позиции
             x1 = 20;
@@ -141,8 +165,7 @@ namespace CartCollision
                 return;
             }
 
-            // Создаём физическую модель с введёнными параметрами
-            // и реальными начальными координатами тележек
+            // Создаём физическую модель с введёнными параметрами и реальными начальными координатами тележек
             cartModel = new CartModel(
                 m1, v1,
                 m2, v2,
@@ -152,8 +175,9 @@ namespace CartCollision
                 lblPhysicsCheck.Text = "Проверка: ожидание удара...";
 
             if (s12 != null)
-                s12.Text = "Скорость после столкновения V': -";
+                s12.Text = "Общая скорость после столкновения V': -";
 
+            realTimer.Restart();
             simulationTimer.Start();
         }
 
@@ -166,15 +190,11 @@ namespace CartCollision
 
             currentTime += dt;
 
-            // Если модель ещё не создана, ничего не делаем
             if (cartModel == null)
                 return;
 
-            // Запоминаем состояние до шага,
-            // чтобы обнаружить момент первого столкновения
             bool wasCollided = cartModel.IsCollided;
 
-            // Физика движения теперь выполняется внутри CartModel
             cartModel.Step(dt * speedScale, cartWidth);
 
             // Получаем координаты и скорости из модели
@@ -187,23 +207,49 @@ namespace CartCollision
             isCollided = cartModel.IsCollided;
 
             // Обрабатываем момент столкновения один раз
+            // Обрабатываем момент столкновения один раз
             if (!wasCollided && isCollided)
             {
+                realTimer.Stop();
                 commonVelocity = (float)cartModel.CommonVelocity;
 
-                bool isPhysicsCorrect =
+                // 1. Проверяем сохранение импульса
+                bool isMomentumCorrect =
                     cartModel.CheckMomentumConservation();
 
-                string checkResult = isPhysicsCorrect
-                    ? "Успешно (импульс сохранен)"
-                    : "Ошибка расчета!";
+                // 2. Рассчитываем кинетическую энергию до столкновения
+                double energyBefore =
+    0.5 * m1 * initialV1 * initialV1 +
+    0.5 * m2 * initialV2 * initialV2;
+
+                // 3. Рассчитываем кинетическую энергию после столкновения
+                double energyAfter =
+                    0.5 * (m1 + m2) *
+                    commonVelocity * commonVelocity;
+
+                // 4. Находим потерю кинетической энергии
+                double energyLoss = energyBefore - energyAfter;
+
+                // 5. Проверяем, что энергия действительно потеряна
+                bool isEnergyCorrect =
+                    energyLoss > 0.0001;
+
+                string momentumResult = isMomentumCorrect
+                    ? "импульс сохранён"
+                    : "ошибка импульса";
+
+                string energyResult = isEnergyCorrect
+                    ? "потеря энергии подтверждена"
+                    : "потеря энергии не подтверждена";
 
                 if (lblPhysicsCheck != null)
                 {
                     lblPhysicsCheck.Text =
-                        $"Проверка: {checkResult} | " +
-                        $"До: {cartModel.MomentumBefore:F2} | " +
-                        $"После: {cartModel.MomentumAfter:F2}";
+                        $"Импульс: {momentumResult}\n" +
+                        $"Энергия до: {energyBefore:F2} Дж\n" +
+                        $"Энергия после: {energyAfter:F2} Дж\n" +
+                        $"Потеря энергии: {energyLoss:F2} Дж\n" +
+                        $"Проверка энергии: {energyResult}";
                 }
 
                 // Фиксируем камеру в месте столкновения
@@ -213,7 +259,9 @@ namespace CartCollision
 
             // Обновляем показания на экране
             if (time != null)
-                time.Text = $"Время модели: {currentTime:F2} с";
+                time.Text = isCollided
+                    ? $"Время эксперимента: {realTimer.Elapsed.TotalSeconds:F2} с"
+                    : $"Время эксперимента: {realTimer.Elapsed.TotalSeconds:F2} с";
 
             if (S1 != null)
                 S1.Text = $"V1: {v1:F2} м/с";
@@ -224,7 +272,7 @@ namespace CartCollision
             if (s12 != null && isCollided)
             {
                 s12.Text =
-                    $"Скорость после столкновения V': {commonVelocity:F2} м/с";
+                    $"Общая скорость после столкновения V': {commonVelocity:F2} м/с";
             }
 
             // Останавливаем симуляцию после ухода тележек за экран
@@ -292,7 +340,6 @@ namespace CartCollision
                     scale = panelWidth / requiredWidth;
                 }
 
-                // Сохраняем текущее положение и масштаб камеры
                 cameraCenterX = cartCenter;
                 cameraScale = scale;
 
@@ -304,7 +351,6 @@ namespace CartCollision
             }
             else
             {
-                // После столкновения камера больше не движется
                 cartCenter = cameraCenterX;
                 scale = cameraScale;
             }
@@ -317,7 +363,7 @@ namespace CartCollision
 
             int groundY = panel1.Height - 60;
 
-            // Рисуем дорогу с большим запасом по длине
+            // Рисуем дорогу
             g.DrawLine(Pens.Black, cartCenter - panelWidth * 3, groundY + cartHeight, cartCenter + panelWidth * 3, groundY + cartHeight);
 
             // Тележка 1
@@ -336,14 +382,19 @@ namespace CartCollision
                 g.FillEllipse(Brushes.DarkGray, x2 + cartWidth - 15, groundY + cartHeight - 5, 10, 10);
             }
 
+
             // Показываем направления и скорости тележек
+            float offset1 = isCollided ? -35f : 0f;
+            float offset2 = isCollided ? 35f : 0f;
+
             DrawVelocityIndicator(
-                g, x1 + cartWidth / 2f, groundY - 35,
+                g, x1 + cartWidth / 2f + offset1, groundY - 35,
                 v1, "v1");
 
             DrawVelocityIndicator(
-                g, x2 + cartWidth / 2f, groundY - 35,
+                g, x2 + cartWidth / 2f + offset2, groundY - 35,
                 v2, "v2");
+
 
             // Эффект удара
             if (isCollided)
@@ -398,6 +449,12 @@ namespace CartCollision
         private void label4_Click(object sender, EventArgs e) { }
         private void label5_Click(object sender, EventArgs e) { }
         private void label6_Click(object sender, EventArgs e) { }
+
+        private void Form1_Load_1(object sender, EventArgs e)
+        {
+
+        }
+
         private void S1_Keypress(object sender, KeyPressEventArgs e) { }
         private void S1_Click(object sender, EventArgs e) { }
         private void S2_Click(object sender, EventArgs e) { }

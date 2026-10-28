@@ -71,9 +71,9 @@
             this.groupBox1.Controls.Add(this.label2);
             this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Location = new System.Drawing.Point(9, 10);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(2);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(2);
             this.groupBox1.Size = new System.Drawing.Size(150, 126);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
@@ -83,7 +83,7 @@
             // 
             this.comboBox1.FormattingEnabled = true;
             this.comboBox1.Location = new System.Drawing.Point(50, 93);
-            this.comboBox1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.comboBox1.Margin = new System.Windows.Forms.Padding(2);
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(92, 21);
             this.comboBox1.TabIndex = 2;
@@ -112,7 +112,7 @@
             // textBox2
             // 
             this.textBox2.Location = new System.Drawing.Point(43, 63);
-            this.textBox2.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.textBox2.Margin = new System.Windows.Forms.Padding(2);
             this.textBox2.Name = "textBox2";
             this.textBox2.Size = new System.Drawing.Size(76, 20);
             this.textBox2.TabIndex = 6;
@@ -122,7 +122,7 @@
             // textBox1
             // 
             this.textBox1.Location = new System.Drawing.Point(43, 27);
-            this.textBox1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.textBox1.Margin = new System.Windows.Forms.Padding(2);
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(76, 20);
             this.textBox1.TabIndex = 5;
@@ -173,9 +173,9 @@
             this.groupBox2.Controls.Add(this.label5);
             this.groupBox2.Controls.Add(this.label4);
             this.groupBox2.Location = new System.Drawing.Point(9, 162);
-            this.groupBox2.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox2.Margin = new System.Windows.Forms.Padding(2);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox2.Padding = new System.Windows.Forms.Padding(2);
             this.groupBox2.Size = new System.Drawing.Size(150, 127);
             this.groupBox2.TabIndex = 1;
             this.groupBox2.TabStop = false;
@@ -185,7 +185,7 @@
             // 
             this.comboBox2.FormattingEnabled = true;
             this.comboBox2.Location = new System.Drawing.Point(50, 100);
-            this.comboBox2.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.comboBox2.Margin = new System.Windows.Forms.Padding(2);
             this.comboBox2.Name = "comboBox2";
             this.comboBox2.Size = new System.Drawing.Size(92, 21);
             this.comboBox2.TabIndex = 10;
@@ -213,7 +213,7 @@
             // textBox4
             // 
             this.textBox4.Location = new System.Drawing.Point(43, 66);
-            this.textBox4.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.textBox4.Margin = new System.Windows.Forms.Padding(2);
             this.textBox4.Name = "textBox4";
             this.textBox4.Size = new System.Drawing.Size(76, 20);
             this.textBox4.TabIndex = 7;
@@ -222,7 +222,7 @@
             // textBox3
             // 
             this.textBox3.Location = new System.Drawing.Point(43, 31);
-            this.textBox3.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.textBox3.Margin = new System.Windows.Forms.Padding(2);
             this.textBox3.Name = "textBox3";
             this.textBox3.Size = new System.Drawing.Size(76, 20);
             this.textBox3.TabIndex = 6;
@@ -264,9 +264,9 @@
             // panel1
             // 
             this.panel1.Location = new System.Drawing.Point(178, 14);
-            this.panel1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.panel1.Margin = new System.Windows.Forms.Padding(2);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(458, 250);
+            this.panel1.Size = new System.Drawing.Size(566, 250);
             this.panel1.TabIndex = 2;
             this.panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.panel1_Paint);
             // 
@@ -276,48 +276,48 @@
             this.time.Location = new System.Drawing.Point(175, 276);
             this.time.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.time.Name = "time";
-            this.time.Size = new System.Drawing.Size(43, 13);
+            this.time.Size = new System.Drawing.Size(131, 13);
             this.time.TabIndex = 3;
-            this.time.Text = "Время:";
+            this.time.Text = "Время эксперимента: ...";
             this.time.Click += new System.EventHandler(this.timer1_Click);
             // 
             // S1
             // 
             this.S1.AutoSize = true;
-            this.S1.Location = new System.Drawing.Point(317, 276);
+            this.S1.Location = new System.Drawing.Point(175, 299);
             this.S1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.S1.Name = "S1";
-            this.S1.Size = new System.Drawing.Size(23, 13);
+            this.S1.Size = new System.Drawing.Size(35, 13);
             this.S1.TabIndex = 4;
-            this.S1.Text = "V1:";
+            this.S1.Text = "V1: ...";
             this.S1.Click += new System.EventHandler(this.S1_Click);
             // 
             // S2
             // 
             this.S2.AutoSize = true;
-            this.S2.Location = new System.Drawing.Point(404, 276);
+            this.S2.Location = new System.Drawing.Point(271, 299);
             this.S2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.S2.Name = "S2";
-            this.S2.Size = new System.Drawing.Size(23, 13);
+            this.S2.Size = new System.Drawing.Size(35, 13);
             this.S2.TabIndex = 5;
-            this.S2.Text = "V2:";
+            this.S2.Text = "V2: ...";
             this.S2.Click += new System.EventHandler(this.S2_Click);
             // 
             // s12
             // 
             this.s12.AutoSize = true;
-            this.s12.Location = new System.Drawing.Point(175, 302);
+            this.s12.Location = new System.Drawing.Point(175, 324);
             this.s12.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.s12.Name = "s12";
-            this.s12.Size = new System.Drawing.Size(177, 13);
+            this.s12.Size = new System.Drawing.Size(226, 13);
             this.s12.TabIndex = 6;
-            this.s12.Text = "Скорость после столкновения V\':";
+            this.s12.Text = "Общая скорость после столкновения V\': ...";
             this.s12.Click += new System.EventHandler(this.label14_Click);
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(9, 308);
-            this.button1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.button1.Location = new System.Drawing.Point(9, 299);
+            this.button1.Margin = new System.Windows.Forms.Padding(2);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(150, 45);
             this.button1.TabIndex = 7;
@@ -332,7 +332,7 @@
             // lblPhysicsCheck
             // 
             this.lblPhysicsCheck.AutoSize = true;
-            this.lblPhysicsCheck.Location = new System.Drawing.Point(175, 322);
+            this.lblPhysicsCheck.Location = new System.Drawing.Point(457, 276);
             this.lblPhysicsCheck.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.lblPhysicsCheck.Name = "lblPhysicsCheck";
             this.lblPhysicsCheck.Size = new System.Drawing.Size(154, 13);
@@ -343,7 +343,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(653, 361);
+            this.ClientSize = new System.Drawing.Size(755, 353);
             this.Controls.Add(this.lblPhysicsCheck);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.s12);
@@ -353,9 +353,10 @@
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "Form1";
-            this.Text = "Моделирование столкновения тележек";
+            this.Text = "Моделирование неупругого столкновения тележек";
+            this.Load += new System.EventHandler(this.Form1_Load_1);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);

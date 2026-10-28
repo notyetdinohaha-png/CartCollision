@@ -56,6 +56,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CartCollision.Core\CartCollision.Core.csproj">
+      <Project>{47aa24fd-f9c3-4372-93ff-456133f4f66a}</Project>
+      <Name>CartCollision.Core</Name>
+    </ProjectReference>
     <ProjectReference Include="..\CartCollision\CartCollision.csproj">
       <Project>{e5f441c5-670b-4a4c-8450-bcd61678f533}</Project>
       <Name>CartCollision</Name>

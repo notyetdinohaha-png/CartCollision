@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CartCollision;
+using CartCollision.Core;
 
 namespace CartCollision.Tests
 {
