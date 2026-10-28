@@ -21,6 +21,9 @@ namespace CartCollision
         private bool isCollided = false;
         private float commonVelocity = 0f;
 
+        // Физическая модель столкновения
+        private CartModel cartModel;
+
         private const int cartWidth = 60;
         private const int cartHeight = 40;
 
@@ -138,13 +141,22 @@ namespace CartCollision
                 return;
             }
 
+            // Создаём физическую модель с введёнными параметрами
+            // и реальными начальными координатами тележек
+            cartModel = new CartModel(
+                m1, v1,
+                m2, v2,
+                x1, x2);
+
             if (lblPhysicsCheck != null)
                 lblPhysicsCheck.Text = "Проверка: ожидание удара...";
+
             if (s12 != null)
                 s12.Text = "Скорость после столкновения: -";
 
-            simulationTimer.Start(); // Запуск анимации
+            simulationTimer.Start();
         }
+
 
 
         private void Timer1_Tick(object sender, EventArgs e)
@@ -154,56 +166,49 @@ namespace CartCollision
 
             currentTime += dt;
 
-            if (!isCollided)
-            {
-                // Движение до столкновения
-                x1 += v1 * dt * speedScale;
-                x2 += v2 * dt * speedScale;
+            // Если модель ещё не создана, ничего не делаем
+            if (cartModel == null)
+                return;
 
-                // Проверяем фактическое соприкосновение тележек
-                if (x1 + cartWidth >= x2)
+            // Запоминаем состояние до шага,
+            // чтобы обнаружить момент первого столкновения
+            bool wasCollided = cartModel.IsCollided;
+
+            // Физика движения теперь выполняется внутри CartModel
+            cartModel.Step(dt * speedScale, cartWidth);
+
+            // Получаем координаты и скорости из модели
+            x1 = (float)cartModel.Position1;
+            x2 = (float)cartModel.Position2;
+
+            v1 = (float)cartModel.Velocity1;
+            v2 = (float)cartModel.Velocity2;
+
+            isCollided = cartModel.IsCollided;
+
+            // Обрабатываем момент столкновения один раз
+            if (!wasCollided && isCollided)
+            {
+                commonVelocity = (float)cartModel.CommonVelocity;
+
+                bool isPhysicsCorrect =
+                    cartModel.CheckMomentumConservation();
+
+                string checkResult = isPhysicsCorrect
+                    ? "Успешно (импульс сохранен)"
+                    : "Ошибка расчета!";
+
+                if (lblPhysicsCheck != null)
                 {
-                    // Убираем небольшое визуальное перекрытие
-                    x2 = x1 + cartWidth;
-
-                    isCollided = true;
-
-                    // Физическая модель столкновения
-                    CartModel model = new CartModel(m1, v1, m2, v2);
-
-                    commonVelocity = (float)model.CommonVelocity;
-
-                    bool isPhysicsCorrect =
-                        model.CheckMomentumConservation();
-
-                    string checkResult = isPhysicsCorrect
-                        ? "Успешно (импульс сохранен)"
-                        : "Ошибка расчета!";
-
-                    if (lblPhysicsCheck != null)
-                    {
-                        lblPhysicsCheck.Text =
-                            $"Проверка: {checkResult} | " +
-                            $"До: {model.MomentumBefore:F2} | " +
-                            $"После: {model.MomentumAfter:F2}";
-                    }
-
-                    // После столкновения скорости одинаковы
-                    v1 = commonVelocity;
-                    v2 = commonVelocity;
-
-                    // Фиксируем камеру в положении удара
-                    cameraCenterX =
-                        (x1 + x2 + cartWidth) / 2f;
-
-                    cameraLocked = true;
+                    lblPhysicsCheck.Text =
+                        $"Проверка: {checkResult} | " +
+                        $"До: {cartModel.MomentumBefore:F2} | " +
+                        $"После: {cartModel.MomentumAfter:F2}";
                 }
-            }
-            else
-            {
-                // После удара обе тележки движутся вместе
-                x1 += commonVelocity * dt * speedScale;
-                x2 += commonVelocity * dt * speedScale;
+
+                // Фиксируем камеру в месте столкновения
+                cameraCenterX = (x1 + x2 + cartWidth) / 2f;
+                cameraLocked = true;
             }
 
             // Обновляем показания на экране
@@ -216,16 +221,17 @@ namespace CartCollision
             if (S2 != null)
                 S2.Text = $"S2: {v2:F2} м/с";
 
-            if (s12 != null)
+            if (s12 != null && isCollided)
+            {
                 s12.Text =
                     $"Скорость после столкновения: {commonVelocity:F2} м/с";
+            }
 
-            // Останавливаем симуляцию, если тележки покинули кадр
+            // Останавливаем симуляцию после ухода тележек за экран
             if (isCollided)
             {
                 if (Math.Abs(commonVelocity) < 0.001f)
                 {
-                    // При нулевой скорости движение завершено
                     simulationTimer.Stop();
                 }
                 else
@@ -255,6 +261,7 @@ namespace CartCollision
 
             panel1.Invalidate();
         }
+
 
 
         private void panel1_Paint(object sender, PaintEventArgs e)
