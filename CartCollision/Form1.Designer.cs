@@ -55,6 +55,7 @@
             this.button1 = new System.Windows.Forms.Button();
             this.errorProvider1 = new System.Windows.Forms.ErrorProvider(this.components);
             this.lblPhysicsCheck = new System.Windows.Forms.Label();
+            this.btnExportCsv = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider1)).BeginInit();
@@ -339,11 +340,22 @@
             this.lblPhysicsCheck.TabIndex = 8;
             this.lblPhysicsCheck.Text = "Проверка: ожидание удара...";
             // 
+            // btnExportCsv
+            // 
+            this.btnExportCsv.Location = new System.Drawing.Point(9, 350);
+            this.btnExportCsv.Name = "btnExportCsv";
+            this.btnExportCsv.Size = new System.Drawing.Size(148, 23);
+            this.btnExportCsv.TabIndex = 9;
+            this.btnExportCsv.Text = "Экспорт в CSV";
+            this.btnExportCsv.UseVisualStyleBackColor = true;
+            this.btnExportCsv.Click += new System.EventHandler(this.btnExportCsv_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(755, 353);
+            this.ClientSize = new System.Drawing.Size(755, 378);
+            this.Controls.Add(this.btnExportCsv);
             this.Controls.Add(this.lblPhysicsCheck);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.s12);
@@ -395,6 +407,7 @@
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.ErrorProvider errorProvider1;
         private System.Windows.Forms.Label lblPhysicsCheck;
+        private System.Windows.Forms.Button btnExportCsv;
     }
 }
 

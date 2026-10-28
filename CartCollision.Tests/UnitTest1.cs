@@ -59,10 +59,10 @@ namespace CartCollision.Tests
             );
         }
 
-    
 
-    
-[TestMethod]
+
+
+        [TestMethod]
         public void Step_ShouldNotCollideBeforeContact()
         {
             // Arrange: тележки ещё далеко друг от друга
@@ -83,6 +83,35 @@ namespace CartCollision.Tests
             Assert.AreEqual(101.0, model.Position2, 0.000001);
         }
 
-    }
+    
 
+    
+[TestMethod]
+        public void InelasticCollision_ShouldLoseKineticEnergy()
+        {
+            // Arrange — создаём две тележки с разными скоростями
+            CartModel cartModel = new CartModel(
+                2.0,  // масса первой тележки
+                4.0,  // скорость первой тележки
+                2.0,  // масса второй тележки
+                0.0   // скорость второй тележки
+            );
+
+            // Act — получаем энергию до и после столкновения
+            double energyBefore = cartModel.EnergyBefore;
+            double energyAfter = cartModel.EnergyAfter;
+
+            // Assert — проверяем, что энергия уменьшилась
+            Assert.IsTrue(
+                energyAfter < energyBefore,
+                "После неупругого столкновения энергия должна уменьшиться."
+            );
+
+            Assert.IsTrue(
+                cartModel.EnergyLoss > 0,
+                "Потеря кинетической энергии должна быть положительной."
+            );
+        }
+
+    }
 }

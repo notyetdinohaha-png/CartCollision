@@ -16,6 +16,15 @@ namespace CartCollision.Core
         public double MomentumBefore { get; private set; }
         public double MomentumAfter { get; private set; }
 
+        public double EnergyBefore { get; private set; }
+        public double EnergyAfter { get; private set; }
+        public double EnergyLoss { get; private set; }
+
+        public bool IsEnergyLossConfirmed
+        {
+            get { return EnergyLoss > 0.0001; }
+        }
+
         // Положение тележек
         public double Position1 { get; private set; }
         public double Position2 { get; private set; }
@@ -63,6 +72,16 @@ namespace CartCollision.Core
 
             CommonVelocity =
                 MomentumBefore / (Mass1 + Mass2);
+
+            EnergyBefore =
+    0.5 * Mass1 * InitialVelocity1 * InitialVelocity1 +
+    0.5 * Mass2 * InitialVelocity2 * InitialVelocity2;
+
+            EnergyAfter =
+                0.5 * (Mass1 + Mass2) *
+                CommonVelocity * CommonVelocity;
+
+            EnergyLoss = EnergyBefore - EnergyAfter;
 
             MomentumAfter =
                 (Mass1 + Mass2) * CommonVelocity;

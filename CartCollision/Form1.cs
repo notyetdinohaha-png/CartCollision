@@ -29,6 +29,10 @@ namespace CartCollision
         // Физическая модель столкновения
         private CartModel cartModel;
 
+        // Данные для экспорта траектории
+        private readonly List<string> trajectoryData = new List<string>();
+        private double simulationTime = 0.0;
+
         private const int cartWidth = 60;
         private const int cartHeight = 40;
 
@@ -146,6 +150,9 @@ namespace CartCollision
             isCollided = false;
             commonVelocity = 0f;
 
+            trajectoryData.Clear();
+            simulationTime = 0.0;
+
             // Возвращаем камеру в режим слежения
             cameraLocked = false;
             cameraScale = 1.0f;
@@ -206,8 +213,21 @@ namespace CartCollision
 
             isCollided = cartModel.IsCollided;
 
+            // Записываем время, координаты и скорости тележек
+            simulationTime += dt * speedScale;
+
+            trajectoryData.Add(string.Join(";",
+                simulationTime.ToString("F4", CultureInfo.InvariantCulture),
+                x1.ToString("F4", CultureInfo.InvariantCulture),
+                x2.ToString("F4", CultureInfo.InvariantCulture),
+                v1.ToString("F4", CultureInfo.InvariantCulture),
+                v2.ToString("F4", CultureInfo.InvariantCulture),
+                isCollided ? "Да" : "Нет"
+            ));
+
             // Обрабатываем момент столкновения один раз
             // Обрабатываем момент столкновения один раз
+
             if (!wasCollided && isCollided)
             {
                 realTimer.Stop();
@@ -217,22 +237,9 @@ namespace CartCollision
                 bool isMomentumCorrect =
                     cartModel.CheckMomentumConservation();
 
-                // 2. Рассчитываем кинетическую энергию до столкновения
-                double energyBefore =
-    0.5 * m1 * initialV1 * initialV1 +
-    0.5 * m2 * initialV2 * initialV2;
-
-                // 3. Рассчитываем кинетическую энергию после столкновения
-                double energyAfter =
-                    0.5 * (m1 + m2) *
-                    commonVelocity * commonVelocity;
-
-                // 4. Находим потерю кинетической энергии
-                double energyLoss = energyBefore - energyAfter;
-
-                // 5. Проверяем, что энергия действительно потеряна
+                // 2. Проверяем потерю кинетической энергии
                 bool isEnergyCorrect =
-                    energyLoss > 0.0001;
+                    cartModel.IsEnergyLossConfirmed;
 
                 string momentumResult = isMomentumCorrect
                     ? "импульс сохранён"
@@ -246,9 +253,9 @@ namespace CartCollision
                 {
                     lblPhysicsCheck.Text =
                         $"Импульс: {momentumResult}\n" +
-                        $"Энергия до: {energyBefore:F2} Дж\n" +
-                        $"Энергия после: {energyAfter:F2} Дж\n" +
-                        $"Потеря энергии: {energyLoss:F2} Дж\n" +
+                        $"Энергия до: {cartModel.EnergyBefore:F2} Дж\n" +
+                        $"Энергия после: {cartModel.EnergyAfter:F2} Дж\n" +
+                        $"Потеря энергии: {cartModel.EnergyLoss:F2} Дж\n" +
                         $"Проверка энергии: {energyResult}";
                 }
 
@@ -453,6 +460,61 @@ namespace CartCollision
         private void Form1_Load_1(object sender, EventArgs e)
         {
 
+        }
+
+        private void btnExportCsv_Click(object sender, EventArgs e)
+        {
+            if (trajectoryData.Count == 0)
+            {
+                MessageBox.Show(
+                    "Нет данных для экспорта. Сначала запустите симуляцию.",
+                    "Экспорт CSV",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            using (SaveFileDialog dialog = new SaveFileDialog())
+            {
+                dialog.Filter = "CSV-файлы (*.csv)|*.csv";
+                dialog.FileName = "trajectory.csv";
+                dialog.Title = "Сохранить траекторию тележек";
+
+                if (dialog.ShowDialog() != DialogResult.OK)
+                    return;
+
+                try
+                {
+                    using (System.IO.StreamWriter writer =
+                        new System.IO.StreamWriter(
+                            dialog.FileName,
+                            false,
+                            new UTF8Encoding(true)))
+                    {
+                        writer.WriteLine(
+                            "Time;Position1;Position2;Velocity1;Velocity2;Collided");
+
+                        foreach (string row in trajectoryData)
+                        {
+                            writer.WriteLine(row);
+                        }
+                    }
+
+                    MessageBox.Show(
+                        $"Экспорт завершён!\nЗаписей: {trajectoryData.Count}\nФайл: {dialog.FileName}",
+                        "Экспорт CSV",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        "Не удалось сохранить файл:\n" + ex.Message,
+                        "Ошибка экспорта",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
+            }
         }
 
         private void S1_Keypress(object sender, KeyPressEventArgs e) { }
