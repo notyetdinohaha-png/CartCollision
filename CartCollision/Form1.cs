@@ -24,6 +24,11 @@ namespace CartCollision
         private const int cartWidth = 60;
         private const int cartHeight = 40;
 
+        // Параметры камеры
+        private float cameraCenterX;
+        private float cameraScale = 1.0f;
+        private bool cameraLocked = false;
+
         // Таймер анимации
         private Timer simulationTimer;
 
@@ -114,6 +119,25 @@ namespace CartCollision
             isCollided = false;
             commonVelocity = 0f;
 
+            // Возвращаем камеру в режим слежения
+            cameraLocked = false;
+            cameraScale = 1.0f;
+            cameraCenterX = (x1 + x2 + cartWidth) / 2f;
+
+            // Проверяем, сближаются ли тележки
+            if (v1 <= v2)
+            {
+                MessageBox.Show(
+                    "При заданных Вами скоростях тележки не столкнутся.\n" +
+                    "Пожалуйста, введите другие значения.",
+                    "Столкновение невозможно",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+
+                panel1.Invalidate();
+                return;
+            }
+
             if (lblPhysicsCheck != null)
                 lblPhysicsCheck.Text = "Проверка: ожидание удара...";
             if (s12 != null)
@@ -122,10 +146,12 @@ namespace CartCollision
             simulationTimer.Start(); // Запуск анимации
         }
 
+
         private void Timer1_Tick(object sender, EventArgs e)
         {
             float dt = 0.05f;
-            float speedScale = 20f; // Коэффициент скорости анимации
+            float speedScale = 20f;
+
             currentTime += dt;
 
             if (!isCollided)
@@ -134,44 +160,102 @@ namespace CartCollision
                 x1 += v1 * dt * speedScale;
                 x2 += v2 * dt * speedScale;
 
-                // Момент столкновения
+                // Проверяем фактическое соприкосновение тележек
                 if (x1 + cartWidth >= x2)
                 {
+                    // Убираем небольшое визуальное перекрытие
+                    x2 = x1 + cartWidth;
+
                     isCollided = true;
 
-                    // --- ПРОВЕРКА ЗАКОНА СОХРАНЕНИЯ ИМПУЛЬСА ---
-                    float pBefore = (m1 * v1) + (m2 * v2);
-                    commonVelocity = (m1 * v1 + m2 * v2) / (m1 + m2);
-                    float pAfter = (m1 + m2) * commonVelocity;
+                    // Физическая модель столкновения
+                    CartModel model = new CartModel(m1, v1, m2, v2);
 
-                    bool isPhysicsCorrect = Math.Abs(pBefore - pAfter) < 0.0001f;
-                    string checkResult = isPhysicsCorrect ? "Успешно (импульс сохранен)" : "Ошибка расчета!";
+                    commonVelocity = (float)model.CommonVelocity;
+
+                    bool isPhysicsCorrect =
+                        model.CheckMomentumConservation();
+
+                    string checkResult = isPhysicsCorrect
+                        ? "Успешно (импульс сохранен)"
+                        : "Ошибка расчета!";
 
                     if (lblPhysicsCheck != null)
                     {
-                        lblPhysicsCheck.Text = $"Проверка: {checkResult} | До: {pBefore:F1} | После: {pAfter:F1}";
+                        lblPhysicsCheck.Text =
+                            $"Проверка: {checkResult} | " +
+                            $"До: {model.MomentumBefore:F2} | " +
+                            $"После: {model.MomentumAfter:F2}";
                     }
 
+                    // После столкновения скорости одинаковы
                     v1 = commonVelocity;
                     v2 = commonVelocity;
+
+                    // Фиксируем камеру в положении удара
+                    cameraCenterX =
+                        (x1 + x2 + cartWidth) / 2f;
+
+                    cameraLocked = true;
                 }
             }
             else
             {
-                // Движение после столкновения с общей скоростью
+                // После удара обе тележки движутся вместе
                 x1 += commonVelocity * dt * speedScale;
                 x2 += commonVelocity * dt * speedScale;
             }
 
-            // Вывод текущих данных в метки на форме
-            if (time != null) time.Text = $"Время: {currentTime:F2} с";
-            if (S1 != null) S1.Text = $"S1: {v1:F2} м/с";
-            if (S2 != null) S2.Text = $"S2: {v2:F2} м/с";
-            if (s12 != null) s12.Text = $"Скорость после столкновения: {commonVelocity:F2} м/с";
+            // Обновляем показания на экране
+            if (time != null)
+                time.Text = $"Время модели: {currentTime:F2} с";
 
-            // Перерисовка холста
+            if (S1 != null)
+                S1.Text = $"S1: {v1:F2} м/с";
+
+            if (S2 != null)
+                S2.Text = $"S2: {v2:F2} м/с";
+
+            if (s12 != null)
+                s12.Text =
+                    $"Скорость после столкновения: {commonVelocity:F2} м/с";
+
+            // Останавливаем симуляцию, если тележки покинули кадр
+            if (isCollided)
+            {
+                if (Math.Abs(commonVelocity) < 0.001f)
+                {
+                    // При нулевой скорости движение завершено
+                    simulationTimer.Stop();
+                }
+                else
+                {
+                    float visibleLeft =
+                        cameraCenterX -
+                        panel1.Width / (2f * cameraScale);
+
+                    float visibleRight =
+                        cameraCenterX +
+                        panel1.Width / (2f * cameraScale);
+
+                    bool movedOffScreenRight =
+                        commonVelocity > 0 &&
+                        x1 > visibleRight &&
+                        x2 > visibleRight;
+
+                    bool movedOffScreenLeft =
+                        commonVelocity < 0 &&
+                        x1 + cartWidth < visibleLeft &&
+                        x2 + cartWidth < visibleLeft;
+
+                    if (movedOffScreenRight || movedOffScreenLeft)
+                        simulationTimer.Stop();
+                }
+            }
+
             panel1.Invalidate();
         }
+
 
         private void panel1_Paint(object sender, PaintEventArgs e)
         {
@@ -181,19 +265,43 @@ namespace CartCollision
             float panelWidth = panel1.Width;
             float panelHeight = panel1.Height;
 
-            // Находим центр между тележками и общее расстояние между ними
+
+            // Рассчитываем положение и масштаб камеры
             float cartCenter = (x1 + x2 + cartWidth) / 2f;
-            float cartSpan = Math.Abs((x2 + cartWidth) - x1);
+            float scale = cameraScale;
 
-            // Буферная зона (150 пикселей запаса), чтобы камера отдалялась заранее
-            float buffer = 150f;
-            float requiredWidth = cartSpan + buffer * 2f;
-
-            float scale = 1.0f;
-            if (requiredWidth > panelWidth)
+            if (!cameraLocked)
             {
-                scale = panelWidth / requiredWidth;
+                // Пока столкновения не было, камера следует за тележками
+                float cartSpan = Math.Abs((x2 + cartWidth) - x1);
+
+                float buffer = 150f;
+                float requiredWidth = cartSpan + buffer * 2f;
+
+                scale = 1.0f;
+
+                if (requiredWidth > panelWidth)
+                {
+                    scale = panelWidth / requiredWidth;
+                }
+
+                // Сохраняем текущее положение и масштаб камеры
+                cameraCenterX = cartCenter;
+                cameraScale = scale;
+
+                // Фиксируем камеру при первом кадре после столкновения
+                if (isCollided)
+                {
+                    cameraLocked = true;
+                }
             }
+            else
+            {
+                // После столкновения камера больше не движется
+                cartCenter = cameraCenterX;
+                scale = cameraScale;
+            }
+
 
             // Пропорциональное масштабирование (и по X, и по Y) с удержанием центра тележек посередине экрана
             g.TranslateTransform(panelWidth / 2f, panelHeight / 2f);
@@ -220,6 +328,15 @@ namespace CartCollision
                 g.FillEllipse(Brushes.DarkGray, x2 + 5, groundY + cartHeight - 5, 10, 10);
                 g.FillEllipse(Brushes.DarkGray, x2 + cartWidth - 15, groundY + cartHeight - 5, 10, 10);
             }
+
+            // Показываем направления и скорости тележек
+            DrawVelocityIndicator(
+                g, x1 + cartWidth / 2f, groundY - 35,
+                v1, "v1");
+
+            DrawVelocityIndicator(
+                g, x2 + cartWidth / 2f, groundY - 35,
+                v2, "v2");
 
             // Эффект удара
             if (isCollided)
@@ -278,5 +395,42 @@ namespace CartCollision
         private void S1_Click(object sender, EventArgs e) { }
         private void S2_Click(object sender, EventArgs e) { }
         private void Form1_Load(object sender, EventArgs e) { }
+
+        private void DrawVelocityIndicator(
+    Graphics g, float centerX, float y,
+    float velocity, string name)
+        {
+            using (Font font = new Font("Arial", 9, FontStyle.Bold))
+            using (Pen pen = new Pen(Color.Black, 2))
+            using (Brush brush = new SolidBrush(Color.Black))
+            {
+                string text = $"{name} = {velocity:+0.0;-0.0;0.0} м/с";
+                SizeF textSize = g.MeasureString(text, font);
+
+                g.DrawString(
+                    text, font, brush,
+                    centerX - textSize.Width / 2f, y - 25);
+
+                if (Math.Abs(velocity) < 0.001f)
+                    return;
+
+                float direction = velocity > 0 ? 1f : -1f;
+                float length = 35f;
+
+                float startX = centerX - direction * length / 2f;
+                float endX = centerX + direction * length / 2f;
+
+                g.DrawLine(pen, startX, y, endX, y);
+
+                PointF[] arrowHead =
+                {
+                    new PointF(endX, y),
+                    new PointF(endX - direction * 8f, y - 5f),
+                    new PointF(endX - direction * 8f, y + 5f)
+                };
+
+                g.FillPolygon(brush, arrowHead);
+            }
+        }
     }
 }
