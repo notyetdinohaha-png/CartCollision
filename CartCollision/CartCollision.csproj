@@ -86,6 +86,10 @@
       <Project>{47aa24fd-f9c3-4372-93ff-456133f4f66a}</Project>
       <Name>CartCollision.Core</Name>
     </ProjectReference>
+    <ProjectReference Include="..\CartCollision.ViewModel\CartCollision.ViewModel.csproj">
+      <Project>{5a3d0361-98ae-40ff-8f1e-d2bc62046c0c}</Project>
+      <Name>CartCollision.ViewModel</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

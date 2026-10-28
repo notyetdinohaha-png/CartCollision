@@ -2,13 +2,10 @@
 using System.Globalization;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using CartCollision.Core;
+using CartCollision.ViewModel;
 
 namespace CartCollision
 {
@@ -17,21 +14,16 @@ namespace CartCollision
         // Переменные для симуляции физики движения
         private float x1, x2;
         private float v1, v2;
-        private float m1, m2;
-        private float initialV1, initialV2;
         private Color color1, color2;
-        private float currentTime = 0f;
         private System.Diagnostics.Stopwatch realTimer =
     new System.Diagnostics.Stopwatch();
-        private bool isCollided = false;
-        private float commonVelocity = 0f;
 
         // Физическая модель столкновения
-        private CartModel cartModel;
+        private readonly MainViewModel viewModel = new MainViewModel();
+
+     
 
         // Данные для экспорта траектории
-        private readonly List<string> trajectoryData = new List<string>();
-        private double simulationTime = 0.0;
 
         private const int cartWidth = 60;
         private const int cartHeight = 40;
@@ -47,6 +39,10 @@ namespace CartCollision
         public Form1()
         {
             InitializeComponent();
+
+            viewModel.PropertyChanged += ViewModel_PropertyChanged;
+
+            
 
             // Инициализация таймера
             simulationTimer = new Timer();
@@ -135,23 +131,15 @@ namespace CartCollision
             color2 = MapColor(colorName2);
 
             // 4) Инициализация параметров физики
-            m1 = (float)mass1;
             v1 = (float)vel1;
-            m2 = (float)mass2;
             v2 = (float)vel2;
-            initialV1 = v1;
-            initialV2 = v2;
 
             // Начальные позиции
             x1 = 20;
             x2 = Math.Max(panel1.Width - 100, 300);
 
-            currentTime = 0f;
-            isCollided = false;
-            commonVelocity = 0f;
+            
 
-            trajectoryData.Clear();
-            simulationTime = 0.0;
 
             // Возвращаем камеру в режим слежения
             cameraLocked = false;
@@ -173,79 +161,86 @@ namespace CartCollision
             }
 
             // Создаём физическую модель с введёнными параметрами и реальными начальными координатами тележек
-            cartModel = new CartModel(
-                m1, v1,
-                m2, v2,
-                x1, x2);
+            try
+            {
+                viewModel.Start(mass1, vel1, mass2, vel2, x1, x2);
+            }
+            catch (ArgumentException ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка запуска",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             if (lblPhysicsCheck != null)
                 lblPhysicsCheck.Text = "Проверка: ожидание удара...";
 
-            if (s12 != null)
-                s12.Text = "Общая скорость после столкновения V': -";
+        
 
             realTimer.Restart();
             simulationTimer.Start();
         }
 
 
+        private void ViewModel_PropertyChanged(
+    object sender,
+    PropertyChangedEventArgs e)
+        {
+            S1.Text = $"V1: {viewModel.Velocity1:F2} м/с";
+            S2.Text = $"V2: {viewModel.Velocity2:F2} м/с";
+
+            if (viewModel.IsCollided)
+            {
+                s12.Text =
+                    $"Общая скорость после столкновения V': {viewModel.CommonVelocity:F2} м/с";
+            }
+            else
+            {
+                s12.Text = "Общая скорость после столкновения V': -";
+            }
+
+            if (e.PropertyName == nameof(MainViewModel.Position1) ||
+                e.PropertyName == nameof(MainViewModel.Position2) ||
+                e.PropertyName == nameof(MainViewModel.IsCollided))
+            {
+                panel1.Invalidate();
+            }
+        }
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
             float dt = 0.05f;
             float speedScale = 20f;
 
-            currentTime += dt;
+            
 
-            if (cartModel == null)
+            if (!viewModel.IsRunning)
                 return;
 
-            bool wasCollided = cartModel.IsCollided;
+            bool wasCollided = viewModel.IsCollided;
 
-            cartModel.Step(dt * speedScale, cartWidth);
+            // ViewModel обновляет физическую модель
+            viewModel.Step(dt * speedScale, cartWidth);
 
-            // Получаем координаты и скорости из модели
-            x1 = (float)cartModel.Position1;
-            x2 = (float)cartModel.Position2;
+            // Получаем текущее состояние из ViewModel
+            x1 = (float)viewModel.Position1;
+            x2 = (float)viewModel.Position2;
 
-            v1 = (float)cartModel.Velocity1;
-            v2 = (float)cartModel.Velocity2;
+            v1 = (float)viewModel.Velocity1;
+            v2 = (float)viewModel.Velocity2;
 
-            isCollided = cartModel.IsCollided;
 
-            // Записываем время, координаты и скорости тележек
-            simulationTime += dt * speedScale;
-
-            trajectoryData.Add(string.Join(";",
-                simulationTime.ToString("F4", CultureInfo.InvariantCulture),
-                x1.ToString("F4", CultureInfo.InvariantCulture),
-                x2.ToString("F4", CultureInfo.InvariantCulture),
-                v1.ToString("F4", CultureInfo.InvariantCulture),
-                v2.ToString("F4", CultureInfo.InvariantCulture),
-                isCollided ? "Да" : "Нет"
-            ));
 
             // Обрабатываем момент столкновения один раз
-            // Обрабатываем момент столкновения один раз
-
-            if (!wasCollided && isCollided)
+            if (!wasCollided && viewModel.IsCollided)
             {
                 realTimer.Stop();
-                commonVelocity = (float)cartModel.CommonVelocity;
 
-                // 1. Проверяем сохранение импульса
-                bool isMomentumCorrect =
-                    cartModel.CheckMomentumConservation();
-
-                // 2. Проверяем потерю кинетической энергии
-                bool isEnergyCorrect =
-                    cartModel.IsEnergyLossConfirmed;
-
-                string momentumResult = isMomentumCorrect
+                string momentumResult = viewModel.MomentumIsCorrect
                     ? "импульс сохранён"
                     : "ошибка импульса";
 
-                string energyResult = isEnergyCorrect
+                string energyResult = viewModel.EnergyLossIsConfirmed
                     ? "потеря энергии подтверждена"
                     : "потеря энергии не подтверждена";
 
@@ -253,9 +248,9 @@ namespace CartCollision
                 {
                     lblPhysicsCheck.Text =
                         $"Импульс: {momentumResult}\n" +
-                        $"Энергия до: {cartModel.EnergyBefore:F2} Дж\n" +
-                        $"Энергия после: {cartModel.EnergyAfter:F2} Дж\n" +
-                        $"Потеря энергии: {cartModel.EnergyLoss:F2} Дж\n" +
+                        $"Энергия до: {viewModel.EnergyBefore:F2} Дж\n" +
+                        $"Энергия после: {viewModel.EnergyAfter:F2} Дж\n" +
+                        $"Потеря энергии: {viewModel.EnergyLoss:F2} Дж\n" +
                         $"Проверка энергии: {energyResult}";
                 }
 
@@ -264,58 +259,53 @@ namespace CartCollision
                 cameraLocked = true;
             }
 
-            // Обновляем показания на экране
+            // Время по-прежнему отображаем в форме
             if (time != null)
-                time.Text = isCollided
-                    ? $"Время эксперимента: {realTimer.Elapsed.TotalSeconds:F2} с"
-                    : $"Время эксперимента: {realTimer.Elapsed.TotalSeconds:F2} с";
-
-            if (S1 != null)
-                S1.Text = $"V1: {v1:F2} м/с";
-
-            if (S2 != null)
-                S2.Text = $"V2: {v2:F2} м/с";
-
-            if (s12 != null && isCollided)
             {
-                s12.Text =
-                    $"Общая скорость после столкновения V': {commonVelocity:F2} м/с";
+                time.Text =
+                    $"Время эксперимента: {realTimer.Elapsed.TotalSeconds:F2} с";
             }
 
-            // Останавливаем симуляцию после ухода тележек за экран
-            if (isCollided)
+            // Проверяем, ушли ли тележки за пределы видимой области
+            if (viewModel.IsCollided)
             {
-                if (Math.Abs(commonVelocity) < 0.001f)
+                bool shouldStop = false;
+
+                if (Math.Abs(viewModel.CommonVelocity) < 0.001)
                 {
-                    simulationTimer.Stop();
+                    shouldStop = true;
                 }
                 else
                 {
                     float visibleLeft =
-                        cameraCenterX -
-                        panel1.Width / (2f * cameraScale);
+                        cameraCenterX - panel1.Width / (2f * cameraScale);
 
                     float visibleRight =
-                        cameraCenterX +
-                        panel1.Width / (2f * cameraScale);
+                        cameraCenterX + panel1.Width / (2f * cameraScale);
 
                     bool movedOffScreenRight =
-                        commonVelocity > 0 &&
+                        viewModel.CommonVelocity > 0 &&
                         x1 > visibleRight &&
                         x2 > visibleRight;
 
                     bool movedOffScreenLeft =
-                        commonVelocity < 0 &&
+                        viewModel.CommonVelocity < 0 &&
                         x1 + cartWidth < visibleLeft &&
                         x2 + cartWidth < visibleLeft;
 
-                    if (movedOffScreenRight || movedOffScreenLeft)
-                        simulationTimer.Stop();
+                    shouldStop = movedOffScreenRight || movedOffScreenLeft;
+                }
+
+                if (shouldStop)
+                {
+                    simulationTimer.Stop();
+                    viewModel.Stop();
                 }
             }
 
             panel1.Invalidate();
         }
+
 
 
 
@@ -351,7 +341,7 @@ namespace CartCollision
                 cameraScale = scale;
 
                 // Фиксируем камеру при первом кадре после столкновения
-                if (isCollided)
+                if (viewModel.IsCollided)
                 {
                     cameraLocked = true;
                 }
@@ -391,8 +381,8 @@ namespace CartCollision
 
 
             // Показываем направления и скорости тележек
-            float offset1 = isCollided ? -35f : 0f;
-            float offset2 = isCollided ? 35f : 0f;
+            float offset1 = viewModel.IsCollided ? -35f : 0f;
+            float offset2 = viewModel.IsCollided ? 35f : 0f;
 
             DrawVelocityIndicator(
                 g, x1 + cartWidth / 2f + offset1, groundY - 35,
@@ -404,10 +394,15 @@ namespace CartCollision
 
 
             // Эффект удара
-            if (isCollided)
+            if (viewModel.IsCollided)
             {
                 float impactX = (x1 + x2 + cartWidth) / 2;
-                g.DrawString("СТОЛКНОВЕНИЕ!", new Font("Arial", 12, FontStyle.Bold), Brushes.Red, impactX - 50, groundY - 30);
+                g.DrawString(
+                    "СТОЛКНОВЕНИЕ!",
+                    new Font("Arial", 12, FontStyle.Bold),
+                    Brushes.Red,
+                    impactX - 50,
+                    groundY - 30);
             }
         }
 
@@ -462,8 +457,11 @@ namespace CartCollision
 
         }
 
+
         private void btnExportCsv_Click(object sender, EventArgs e)
         {
+            List<string> trajectoryData = viewModel.GetTrajectoryData();
+
             if (trajectoryData.Count == 0)
             {
                 MessageBox.Show(
@@ -516,6 +514,7 @@ namespace CartCollision
                 }
             }
         }
+
 
         private void S1_Keypress(object sender, KeyPressEventArgs e) { }
         private void S1_Click(object sender, EventArgs e) { }

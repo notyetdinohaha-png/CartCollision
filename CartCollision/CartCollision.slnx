@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="../CartCollision.Core/CartCollision.Core.csproj" Id="47aa24fd-f9c3-4372-93ff-456133f4f66a" />
   <Project Path="../CartCollision.Tests/CartCollision.Tests.csproj" Id="bb5d70cb-70b9-4b6c-af27-3ca9e2d8860b" />
+  <Project Path="../CartCollision.ViewModel/CartCollision.ViewModel.csproj" Id="5a3d0361-98ae-40ff-8f1e-d2bc62046c0c" />
   <Project Path="CartCollision.csproj" Id="e5f441c5-670b-4a4c-8450-bcd61678f533" />
 </Solution>
