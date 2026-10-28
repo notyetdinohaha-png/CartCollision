@@ -289,7 +289,7 @@
             this.S1.Name = "S1";
             this.S1.Size = new System.Drawing.Size(23, 13);
             this.S1.TabIndex = 4;
-            this.S1.Text = "S1:";
+            this.S1.Text = "V1:";
             this.S1.Click += new System.EventHandler(this.S1_Click);
             // 
             // S2
@@ -300,7 +300,7 @@
             this.S2.Name = "S2";
             this.S2.Size = new System.Drawing.Size(23, 13);
             this.S2.TabIndex = 5;
-            this.S2.Text = "S2:";
+            this.S2.Text = "V2:";
             this.S2.Click += new System.EventHandler(this.S2_Click);
             // 
             // s12
@@ -309,9 +309,9 @@
             this.s12.Location = new System.Drawing.Point(175, 302);
             this.s12.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.s12.Name = "s12";
-            this.s12.Size = new System.Drawing.Size(165, 13);
+            this.s12.Size = new System.Drawing.Size(177, 13);
             this.s12.TabIndex = 6;
-            this.s12.Text = "Скорость после столкновения:";
+            this.s12.Text = "Скорость после столкновения V\':";
             this.s12.Click += new System.EventHandler(this.label14_Click);
             // 
             // button1

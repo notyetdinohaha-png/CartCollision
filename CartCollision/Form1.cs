@@ -152,7 +152,7 @@ namespace CartCollision
                 lblPhysicsCheck.Text = "Проверка: ожидание удара...";
 
             if (s12 != null)
-                s12.Text = "Скорость после столкновения: -";
+                s12.Text = "Скорость после столкновения V': -";
 
             simulationTimer.Start();
         }
@@ -216,15 +216,15 @@ namespace CartCollision
                 time.Text = $"Время модели: {currentTime:F2} с";
 
             if (S1 != null)
-                S1.Text = $"S1: {v1:F2} м/с";
+                S1.Text = $"V1: {v1:F2} м/с";
 
             if (S2 != null)
-                S2.Text = $"S2: {v2:F2} м/с";
+                S2.Text = $"V2: {v2:F2} м/с";
 
             if (s12 != null && isCollided)
             {
                 s12.Text =
-                    $"Скорость после столкновения: {commonVelocity:F2} м/с";
+                    $"Скорость после столкновения V': {commonVelocity:F2} м/с";
             }
 
             // Останавливаем симуляцию после ухода тележек за экран
@@ -411,7 +411,7 @@ namespace CartCollision
             using (Pen pen = new Pen(Color.Black, 2))
             using (Brush brush = new SolidBrush(Color.Black))
             {
-                string text = $"{name} = {velocity:+0.0;-0.0;0.0} м/с";
+                string text = $"{name} = {velocity:+0.00;-0.00;0.00} м/с";
                 SizeF textSize = g.MeasureString(text, font);
 
                 g.DrawString(
