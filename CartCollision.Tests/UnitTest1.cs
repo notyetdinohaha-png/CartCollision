@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CartCollision;
 using CartCollision.Core;
+using CartCollision.ViewModel;
 
 namespace CartCollision.Tests
 {
@@ -83,10 +84,10 @@ namespace CartCollision.Tests
             Assert.AreEqual(101.0, model.Position2, 0.000001);
         }
 
-    
 
-    
-[TestMethod]
+
+
+        [TestMethod]
         public void InelasticCollision_ShouldLoseKineticEnergy()
         {
             // Arrange — создаём две тележки с разными скоростями
@@ -112,6 +113,96 @@ namespace CartCollision.Tests
                 "Потеря кинетической энергии должна быть положительной."
             );
         }
+
+
+        [TestMethod]
+        public void Start_ShouldInitializeSimulation()
+        {
+            // Arrange
+            var vm = new MainViewModel();
+
+            // Act
+            vm.Start(2, 3, 1, -1, 20, 100);
+
+            // Assert
+            Assert.IsTrue(vm.IsRunning);
+            Assert.AreEqual(20, vm.Position1);
+            Assert.AreEqual(100, vm.Position2);
+            Assert.AreEqual(3, vm.Velocity1);
+            Assert.AreEqual(-1, vm.Velocity2);
+        }
+
+
+        [TestMethod]
+        public void Step_ShouldMoveCartsForward()
+        {
+            // Arrange
+            var vm = new MainViewModel();
+            vm.Start(2, 3, 1, 1, 20, 100);
+
+            // Act
+            vm.Step(1, 5);
+
+            // Assert
+            Assert.AreEqual(23, vm.Position1);
+            Assert.AreEqual(101, vm.Position2);
+        }
+
+
+        [TestMethod]
+        public void Stop_ShouldStopSimulation()
+        {
+            // Arrange
+            var vm = new MainViewModel();
+            vm.Start(2, 3, 1, 1, 20, 100);
+
+            // Act
+            vm.Stop();
+
+            // Assert
+            Assert.IsFalse(vm.IsRunning);
+        }
+
+
+        [TestMethod]
+        public void Step_ShouldDetectCollision()
+        {
+            // Arrange
+            var vm = new MainViewModel();
+            vm.Start(2, 3, 1, 1, 0, 10);
+
+            // Act
+            vm.Step(2, 5);
+            vm.Step(2, 5);
+
+            // Assert
+            Assert.IsTrue(vm.IsCollided);
+            Assert.AreEqual(vm.CommonVelocity, vm.Velocity1, 0.000001);
+            Assert.AreEqual(vm.CommonVelocity, vm.Velocity2, 0.000001);
+        }
+
+
+        [TestMethod]
+        public void Start_ShouldCalculatePhysicsChecks()
+        {
+            var vm = new MainViewModel();
+
+            // Запускаем эксперимент
+            vm.Start(2, 4, 2, 0, 20, 100);
+
+            // Проверяем, что до столкновения проверки ещё не выполнены
+            Assert.IsFalse(vm.MomentumIsCorrect);
+            Assert.IsFalse(vm.EnergyLossIsConfirmed);
+
+            // Выполняем шаг, достаточный для столкновения
+            vm.Step(5, 60);
+
+            // Проверяем результаты после столкновения
+            Assert.IsTrue(vm.IsCollided);
+            Assert.IsTrue(vm.MomentumIsCorrect);
+            Assert.IsTrue(vm.EnergyLossIsConfirmed);
+        }
+
 
     }
 }

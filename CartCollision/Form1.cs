@@ -1,7 +1,9 @@
-﻿using System;
+﻿
+using System;
 using System.Globalization;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
@@ -11,19 +13,12 @@ namespace CartCollision
 {
     public partial class Form1 : Form
     {
-        // Переменные для симуляции физики движения
-        private float x1, x2;
-        private float v1, v2;
-        private Color color1, color2;
-        private System.Diagnostics.Stopwatch realTimer =
-    new System.Diagnostics.Stopwatch();
-
-        // Физическая модель столкновения
+        // ViewModel — единственный источник данных симуляции
         private readonly MainViewModel viewModel = new MainViewModel();
 
-     
-
-        // Данные для экспорта траектории
+        // Цвета тележек относятся к отображению, поэтому остаются в Form1
+        private Color color1;
+        private Color color2;
 
         private const int cartWidth = 60;
         private const int cartHeight = 40;
@@ -33,46 +28,73 @@ namespace CartCollision
         private float cameraScale = 1.0f;
         private bool cameraLocked = false;
 
-        // Таймер анимации
+        // Таймеры интерфейса
+        private readonly Stopwatch realTimer = new Stopwatch();
         private Timer simulationTimer;
 
         public Form1()
         {
             InitializeComponent();
 
+            // Подписываем форму на изменения ViewModel
             viewModel.PropertyChanged += ViewModel_PropertyChanged;
 
-            
-
-            // Инициализация таймера
+            // Создаём таймер анимации
             simulationTimer = new Timer();
             simulationTimer.Interval = 50;
             simulationTimer.Tick += Timer1_Tick;
 
-            // Включаем двойную буферизацию для panel1, чтобы анимация не мерцала
-            typeof(Panel).InvokeMember("DoubleBuffered",
-                System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
-                null, panel1, new object[] { true });
+            // Убираем мерцание при отрисовке
+            typeof(Panel).InvokeMember(
+                "DoubleBuffered",
+                System.Reflection.BindingFlags.SetProperty |
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic,
+                null,
+                panel1,
+                new object[] { true }
+            );
 
-            // Заполняем выпадающие списки цветов при запуске
-            string[] colors = { "Красный", "Синий", "Зелёный", "Жёлтый", "Оранжевый", "Фиолетовый", "Розовый", "Бирюзовый" };
+            // Заполняем списки цветов
+            string[] colors =
+            {
+                "Красный",
+                "Синий",
+                "Зелёный",
+                "Жёлтый",
+                "Оранжевый",
+                "Фиолетовый",
+                "Розовый",
+                "Бирюзовый"
+            };
+
+            comboBox1.Items.Clear();
+            comboBox2.Items.Clear();
+
             comboBox1.Items.AddRange(colors);
             comboBox2.Items.AddRange(colors);
 
-            if (comboBox1.Items.Count > 0) comboBox1.SelectedIndex = 0;
-            if (comboBox2.Items.Count > 1) comboBox2.SelectedIndex = 1;
-
-            comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
-            comboBox2.SelectedIndexChanged += comboBox2_SelectedIndexChanged;
+            comboBox1.SelectedIndex = 0;
+            comboBox2.SelectedIndex = 1;
 
             color1 = MapColor(comboBox1.SelectedItem.ToString());
             color2 = MapColor(comboBox2.SelectedItem.ToString());
 
-            x1 = 20;
-            x2 = 350;
+            // Обработчики выбора цвета
+            comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
+            comboBox2.SelectedIndexChanged += comboBox2_SelectedIndexChanged;
+
+            // Начальные координаты камеры
+            cameraCenterX = 0;
+            cameraScale = 1.0f;
+
+            ViewModel_PropertyChanged(
+                this,
+                new PropertyChangedEventArgs("")
+            );
         }
 
-
+        // Преобразование введённой строки в число
         private bool TryParseFlexibleDouble(string text, out double value)
         {
             text = text.Trim().Replace(',', '.');
@@ -81,155 +103,218 @@ namespace CartCollision
                 text,
                 NumberStyles.Float,
                 CultureInfo.InvariantCulture,
-                out value);
+                out value
+            );
 
             return parsed &&
                    !double.IsNaN(value) &&
                    !double.IsInfinity(value);
         }
 
-
+        // Кнопка запуска эксперимента
         private void button1_Click(object sender, EventArgs e)
         {
-            // 1) Проверка введенных данных первой тележки
-            if (!TryParseFlexibleDouble(textBox1.Text, out double mass1) || mass1 <= 0)
+            double mass1;
+            double mass2;
+            double velocity1;
+            double velocity2;
+
+            // Проверка массы первой тележки
+            if (!TryParseFlexibleDouble(textBox1.Text, out mass1) ||
+                mass1 <= 0)
             {
-                errorProvider1.SetError(textBox1, "Введите корректную массу первой тележки!");
-                return;
-            }
-            if (!TryParseFlexibleDouble(textBox2.Text, out double vel1))
-            {
-                errorProvider1.SetError(textBox2, "Введите корректную скорость первой тележки!");
+                errorProvider1.SetError(
+                    textBox1,
+                    "Введите корректную массу первой тележки!"
+                );
                 return;
             }
 
-            // 2) Проверка введенных данных второй тележки
-            if (!TryParseFlexibleDouble(textBox3.Text, out double mass2) || mass2 <= 0)
+            // Проверка скорости первой тележки
+            if (!TryParseFlexibleDouble(textBox2.Text, out velocity1))
             {
-                errorProvider1.SetError(textBox3, "Введите корректную массу второй тележки!");
+                errorProvider1.SetError(
+                    textBox2,
+                    "Введите корректную скорость первой тележки!"
+                );
                 return;
             }
-            if (!TryParseFlexibleDouble(textBox4.Text, out double vel2))
+
+            // Проверка массы второй тележки
+            if (!TryParseFlexibleDouble(textBox3.Text, out mass2) ||
+                mass2 <= 0)
             {
-                errorProvider1.SetError(textBox4, "Введите корректную скорость второй тележки!");
+                errorProvider1.SetError(
+                    textBox3,
+                    "Введите корректную массу второй тележки!"
+                );
+                return;
+            }
+
+            // Проверка скорости второй тележки
+            if (!TryParseFlexibleDouble(textBox4.Text, out velocity2))
+            {
+                errorProvider1.SetError(
+                    textBox4,
+                    "Введите корректную скорость второй тележки!"
+                );
                 return;
             }
 
             errorProvider1.Clear();
 
-            // 3) Считываем выбранные цвета
-            string colorName1 = comboBox1.SelectedItem?.ToString() ?? "Красный";
-            string colorName2 = comboBox2.SelectedItem?.ToString() ?? "Синий";
-
-            if (colorName1 == colorName2)
+            // Проверяем, будут ли тележки сближаться
+            if (velocity1 <= velocity2)
             {
-                MessageBox.Show("Рекомендуется выбрать разные цвета для тележек, чтобы их было лучше различать на экране!",
-                    "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(
+                    "При заданных скоростях тележки не столкнутся.\n" +
+                    "Введите другие значения.",
+                    "Столкновение невозможно",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+                return;
             }
+
+            // Получаем выбранные цвета
+            string colorName1 =
+                comboBox1.SelectedItem?.ToString() ?? "Красный";
+
+            string colorName2 =
+                comboBox2.SelectedItem?.ToString() ?? "Синий";
 
             color1 = MapColor(colorName1);
             color2 = MapColor(colorName2);
 
-            // 4) Инициализация параметров физики
-            v1 = (float)vel1;
-            v2 = (float)vel2;
-
-            // Начальные позиции
-            x1 = 20;
-            x2 = Math.Max(panel1.Width - 100, 300);
-
-            
-
-
-            // Возвращаем камеру в режим слежения
-            cameraLocked = false;
-            cameraScale = 1.0f;
-            cameraCenterX = (x1 + x2 + cartWidth) / 2f;
-
-            // Проверяем, сближаются ли тележки
-            if (v1 <= v2)
+            if (color1 == color2)
             {
                 MessageBox.Show(
-                    "При заданных Вами скоростях тележки не столкнутся.\n" +
-                    "Пожалуйста, введите другие значения.",
-                    "Столкновение невозможно",
+                    "Рекомендуется выбрать разные цвета тележек.",
+                    "Внимание",
                     MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-
-                panel1.Invalidate();
-                return;
+                    MessageBoxIcon.Warning
+                );
             }
 
-            // Создаём физическую модель с введёнными параметрами и реальными начальными координатами тележек
+            // Начальные координаты тележек
+            double position1 = 20;
+            double position2 = Math.Max(panel1.Width - 100, 300);
+
+            // Останавливаем предыдущий эксперимент, если он выполнялся
+            simulationTimer.Stop();
+            realTimer.Stop();
+            viewModel.Stop();
+
+            // Запускаем физическую модель через ViewModel
             try
             {
-                viewModel.Start(mass1, vel1, mass2, vel2, x1, x2);
+                viewModel.Start(
+                    mass1,
+                    velocity1,
+                    mass2,
+                    velocity2,
+                    position1,
+                    position2
+                );
             }
             catch (ArgumentException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка запуска",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(
+                    ex.Message,
+                    "Ошибка запуска",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
                 return;
             }
 
+            // Сбрасываем камеру
+            cameraLocked = false;
+            cameraScale = 1.0f;
+            cameraCenterX = (float)(
+                (position1 + position2 + cartWidth) / 2.0
+            );
+
+            // Обновляем надписи
             if (lblPhysicsCheck != null)
-                lblPhysicsCheck.Text = "Проверка: ожидание удара...";
+                lblPhysicsCheck.Text = "Проверка: ожидание столкновения...";
 
-        
+            if (time != null)
+                time.Text = "Время эксперимента: 0.00 с";
 
+            // Запускаем таймеры
             realTimer.Restart();
             simulationTimer.Start();
+
+            panel1.Invalidate();
         }
 
-
+        // Реакция формы на изменения ViewModel
         private void ViewModel_PropertyChanged(
-    object sender,
-    PropertyChangedEventArgs e)
+            object sender,
+            PropertyChangedEventArgs e)
         {
-            S1.Text = $"V1: {viewModel.Velocity1:F2} м/с";
-            S2.Text = $"V2: {viewModel.Velocity2:F2} м/с";
+            if (S1 != null)
+                S1.Text = $"V1: {viewModel.Velocity1:F2} м/с";
 
-            if (viewModel.IsCollided)
+            if (S2 != null)
+                S2.Text = $"V2: {viewModel.Velocity2:F2} м/с";
+
+            if (s12 != null)
             {
-                s12.Text =
-                    $"Общая скорость после столкновения V': {viewModel.CommonVelocity:F2} м/с";
-            }
-            else
-            {
-                s12.Text = "Общая скорость после столкновения V': -";
+                if (viewModel.IsCollided)
+                {
+                    s12.Text =
+                        $"Общая скорость после столкновения V': " +
+                        $"{viewModel.CommonVelocity:F2} м/с";
+                }
+                else
+                {
+                    s12.Text = "Общая скорость после столкновения V': -";
+                }
             }
 
+            // При изменении координат или состояния столкновения
+            // перерисовываем область анимации
             if (e.PropertyName == nameof(MainViewModel.Position1) ||
                 e.PropertyName == nameof(MainViewModel.Position2) ||
-                e.PropertyName == nameof(MainViewModel.IsCollided))
+                e.PropertyName == nameof(MainViewModel.IsCollided) ||
+                string.IsNullOrEmpty(e.PropertyName))
             {
-                panel1.Invalidate();
+                if (panel1 != null)
+                    panel1.Invalidate();
             }
         }
 
+        // Один шаг анимации
         private void Timer1_Tick(object sender, EventArgs e)
         {
-            float dt = 0.05f;
-            float speedScale = 20f;
-
-            
-
             if (!viewModel.IsRunning)
                 return;
 
             bool wasCollided = viewModel.IsCollided;
 
-            // ViewModel обновляет физическую модель
-            viewModel.Step(dt * speedScale, cartWidth);
+            // Шаг времени модели
+            double dt = 0.05 * 20.0;
 
-            // Получаем текущее состояние из ViewModel
-            x1 = (float)viewModel.Position1;
-            x2 = (float)viewModel.Position2;
+            try
+            {
+                // Физический расчёт выполняется в ViewModel
+                viewModel.Step(dt, cartWidth);
+            }
+            catch (ArgumentException ex)
+            {
+                simulationTimer.Stop();
+                realTimer.Stop();
 
-            v1 = (float)viewModel.Velocity1;
-            v2 = (float)viewModel.Velocity2;
-
-
+                MessageBox.Show(
+                    ex.Message,
+                    "Ошибка симуляции",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                return;
+            }
 
             // Обрабатываем момент столкновения один раз
             if (!wasCollided && viewModel.IsCollided)
@@ -238,7 +323,7 @@ namespace CartCollision
 
                 string momentumResult = viewModel.MomentumIsCorrect
                     ? "импульс сохранён"
-                    : "ошибка импульса";
+                    : "ошибка сохранения импульса";
 
                 string energyResult = viewModel.EnergyLossIsConfirmed
                     ? "потеря энергии подтверждена"
@@ -255,18 +340,24 @@ namespace CartCollision
                 }
 
                 // Фиксируем камеру в месте столкновения
-                cameraCenterX = (x1 + x2 + cartWidth) / 2f;
+                cameraCenterX = (float)(
+                    (viewModel.Position1 +
+                     viewModel.Position2 +
+                     cartWidth) / 2.0
+                );
+
                 cameraLocked = true;
             }
 
-            // Время по-прежнему отображаем в форме
+            // Обновляем время эксперимента
             if (time != null)
             {
                 time.Text =
-                    $"Время эксперимента: {realTimer.Elapsed.TotalSeconds:F2} с";
+                    $"Время эксперимента: " +
+                    $"{realTimer.Elapsed.TotalSeconds:F2} с";
             }
 
-            // Проверяем, ушли ли тележки за пределы видимой области
+            // Проверяем, не ушли ли тележки за пределы экрана
             if (viewModel.IsCollided)
             {
                 bool shouldStop = false;
@@ -285,15 +376,16 @@ namespace CartCollision
 
                     bool movedOffScreenRight =
                         viewModel.CommonVelocity > 0 &&
-                        x1 > visibleRight &&
-                        x2 > visibleRight;
+                        viewModel.Position1 > visibleRight &&
+                        viewModel.Position2 > visibleRight;
 
                     bool movedOffScreenLeft =
                         viewModel.CommonVelocity < 0 &&
-                        x1 + cartWidth < visibleLeft &&
-                        x2 + cartWidth < visibleLeft;
+                        viewModel.Position1 + cartWidth < visibleLeft &&
+                        viewModel.Position2 + cartWidth < visibleLeft;
 
-                    shouldStop = movedOffScreenRight || movedOffScreenLeft;
+                    shouldStop =
+                        movedOffScreenRight || movedOffScreenLeft;
                 }
 
                 if (shouldStop)
@@ -306,9 +398,7 @@ namespace CartCollision
             panel1.Invalidate();
         }
 
-
-
-
+        // Отрисовка анимации
         private void panel1_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
@@ -317,15 +407,23 @@ namespace CartCollision
             float panelWidth = panel1.Width;
             float panelHeight = panel1.Height;
 
+            // Координаты берём непосредственно из ViewModel
+            float x1 = (float)viewModel.Position1;
+            float x2 = (float)viewModel.Position2;
 
-            // Рассчитываем положение и масштаб камеры
+            float v1 = (float)viewModel.Velocity1;
+            float v2 = (float)viewModel.Velocity2;
+
+            // Центр между тележками
             float cartCenter = (x1 + x2 + cartWidth) / 2f;
+
             float scale = cameraScale;
 
             if (!cameraLocked)
             {
-                // Пока столкновения не было, камера следует за тележками
-                float cartSpan = Math.Abs((x2 + cartWidth) - x1);
+                // Камера следует за тележками
+                float cartSpan =
+                    Math.Abs((x2 + cartWidth) - x1);
 
                 float buffer = 150f;
                 float requiredWidth = cartSpan + buffer * 2f;
@@ -333,18 +431,10 @@ namespace CartCollision
                 scale = 1.0f;
 
                 if (requiredWidth > panelWidth)
-                {
                     scale = panelWidth / requiredWidth;
-                }
 
                 cameraCenterX = cartCenter;
                 cameraScale = scale;
-
-                // Фиксируем камеру при первом кадре после столкновения
-                if (viewModel.IsCollided)
-                {
-                    cameraLocked = true;
-                }
             }
             else
             {
@@ -352,60 +442,121 @@ namespace CartCollision
                 scale = cameraScale;
             }
 
-
-            // Пропорциональное масштабирование (и по X, и по Y) с удержанием центра тележек посередине экрана
+            // Настройка системы координат
             g.TranslateTransform(panelWidth / 2f, panelHeight / 2f);
             g.ScaleTransform(scale, scale);
             g.TranslateTransform(-cartCenter, -panelHeight / 2f);
 
             int groundY = panel1.Height - 60;
 
-            // Рисуем дорогу
-            g.DrawLine(Pens.Black, cartCenter - panelWidth * 3, groundY + cartHeight, cartCenter + panelWidth * 3, groundY + cartHeight);
+            // Дорога
+            g.DrawLine(
+                Pens.Black,
+                cartCenter - panelWidth * 3,
+                groundY + cartHeight,
+                cartCenter + panelWidth * 3,
+                groundY + cartHeight
+            );
 
-            // Тележка 1
+            // Первая тележка
             using (Brush b1 = new SolidBrush(color1))
             {
-                g.FillRectangle(b1, x1, groundY, cartWidth, cartHeight);
-                g.FillEllipse(Brushes.DarkGray, x1 + 5, groundY + cartHeight - 5, 10, 10);
-                g.FillEllipse(Brushes.DarkGray, x1 + cartWidth - 15, groundY + cartHeight - 5, 10, 10);
+                g.FillRectangle(
+                    b1,
+                    x1,
+                    groundY,
+                    cartWidth,
+                    cartHeight
+                );
+
+                g.FillEllipse(
+                    Brushes.DarkGray,
+                    x1 + 5,
+                    groundY + cartHeight - 5,
+                    10,
+                    10
+                );
+
+                g.FillEllipse(
+                    Brushes.DarkGray,
+                    x1 + cartWidth - 15,
+                    groundY + cartHeight - 5,
+                    10,
+                    10
+                );
             }
 
-            // Тележка 2
+            // Вторая тележка
             using (Brush b2 = new SolidBrush(color2))
             {
-                g.FillRectangle(b2, x2, groundY, cartWidth, cartHeight);
-                g.FillEllipse(Brushes.DarkGray, x2 + 5, groundY + cartHeight - 5, 10, 10);
-                g.FillEllipse(Brushes.DarkGray, x2 + cartWidth - 15, groundY + cartHeight - 5, 10, 10);
+                g.FillRectangle(
+                    b2,
+                    x2,
+                    groundY,
+                    cartWidth,
+                    cartHeight
+                );
+
+                g.FillEllipse(
+                    Brushes.DarkGray,
+                    x2 + 5,
+                    groundY + cartHeight - 5,
+                    10,
+                    10
+                );
+
+                g.FillEllipse(
+                    Brushes.DarkGray,
+                    x2 + cartWidth - 15,
+                    groundY + cartHeight - 5,
+                    10,
+                    10
+                );
             }
 
-
-            // Показываем направления и скорости тележек
+            // Индикаторы скоростей
             float offset1 = viewModel.IsCollided ? -35f : 0f;
             float offset2 = viewModel.IsCollided ? 35f : 0f;
 
             DrawVelocityIndicator(
-                g, x1 + cartWidth / 2f + offset1, groundY - 35,
-                v1, "v1");
+                g,
+                x1 + cartWidth / 2f + offset1,
+                groundY - 35,
+                v1,
+                "v1"
+            );
 
             DrawVelocityIndicator(
-                g, x2 + cartWidth / 2f + offset2, groundY - 35,
-                v2, "v2");
+                g,
+                x2 + cartWidth / 2f + offset2,
+                groundY - 35,
+                v2,
+                "v2"
+            );
 
-
-            // Эффект удара
+            // Надпись в момент столкновения
             if (viewModel.IsCollided)
             {
-                float impactX = (x1 + x2 + cartWidth) / 2;
-                g.DrawString(
-                    "СТОЛКНОВЕНИЕ!",
-                    new Font("Arial", 12, FontStyle.Bold),
-                    Brushes.Red,
-                    impactX - 50,
-                    groundY - 30);
+                float impactX = (x1 + x2 + cartWidth) / 2f;
+
+                using (Font font =
+                    new Font("Arial", 12, FontStyle.Bold))
+                {
+                    g.DrawString(
+                        "СТОЛКНОВЕНИЕ!",
+                        font,
+                        Brushes.Red,
+                        impactX - 50,
+                        groundY - 30
+                    );
+                }
             }
+
+            // Возвращаем исходную систему координат
+            g.ResetTransform();
         }
 
+        // Преобразование названия цвета в Color
         private Color MapColor(string colorName)
         {
             switch (colorName)
@@ -422,7 +573,10 @@ namespace CartCollision
             }
         }
 
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        // Изменение цвета первой тележки
+        private void comboBox1_SelectedIndexChanged(
+            object sender,
+            EventArgs e)
         {
             if (comboBox1.SelectedItem != null)
             {
@@ -431,7 +585,10 @@ namespace CartCollision
             }
         }
 
-        private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
+        // Изменение цвета второй тележки
+        private void comboBox2_SelectedIndexChanged(
+            object sender,
+            EventArgs e)
         {
             if (comboBox2.SelectedItem != null)
             {
@@ -440,35 +597,20 @@ namespace CartCollision
             }
         }
 
-        // Заглушки для событий
-        private void timer1_Click(object sender, EventArgs e) { }
-        private void label2_Click(object sender, EventArgs e) { }
-        private void label14_Click(object sender, EventArgs e) { }
-        private void label1_Click(object sender, EventArgs e) { }
-        private void label3_Click(object sender, EventArgs e) { }
-        private void textBox2_TextChanged(object sender, EventArgs e) { }
-        private void textBox1_TextChanged(object sender, EventArgs e) { }
-        private void label4_Click(object sender, EventArgs e) { }
-        private void label5_Click(object sender, EventArgs e) { }
-        private void label6_Click(object sender, EventArgs e) { }
-
-        private void Form1_Load_1(object sender, EventArgs e)
-        {
-
-        }
-
-
+        // Экспорт траектории в CSV
         private void btnExportCsv_Click(object sender, EventArgs e)
         {
-            List<string> trajectoryData = viewModel.GetTrajectoryData();
+            List<string> trajectoryData =
+                viewModel.GetTrajectoryData();
 
-            if (trajectoryData.Count == 0)
+            if (trajectoryData == null || trajectoryData.Count == 0)
             {
                 MessageBox.Show(
                     "Нет данных для экспорта. Сначала запустите симуляцию.",
                     "Экспорт CSV",
                     MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
+                    MessageBoxIcon.Information
+                );
                 return;
             }
 
@@ -490,7 +632,8 @@ namespace CartCollision
                             new UTF8Encoding(true)))
                     {
                         writer.WriteLine(
-                            "Time;Position1;Position2;Velocity1;Velocity2;Collided");
+                            "Time;Position1;Position2;Velocity1;Velocity2;Collided"
+                        );
 
                         foreach (string row in trajectoryData)
                         {
@@ -499,10 +642,13 @@ namespace CartCollision
                     }
 
                     MessageBox.Show(
-                        $"Экспорт завершён!\nЗаписей: {trajectoryData.Count}\nФайл: {dialog.FileName}",
+                        $"Экспорт завершён!\n" +
+                        $"Записей: {trajectoryData.Count}\n" +
+                        $"Файл: {dialog.FileName}",
                         "Экспорт CSV",
                         MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
+                        MessageBoxIcon.Information
+                    );
                 }
                 catch (Exception ex)
                 {
@@ -510,31 +656,56 @@ namespace CartCollision
                         "Не удалось сохранить файл:\n" + ex.Message,
                         "Ошибка экспорта",
                         MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
+                        MessageBoxIcon.Error
+                    );
                 }
             }
         }
 
+        // Заглушки событий, подключённых в Designer
+        private void timer1_Click(object sender, EventArgs e) { }
+        private void label2_Click(object sender, EventArgs e) { }
+        private void label14_Click(object sender, EventArgs e) { }
+        private void label1_Click(object sender, EventArgs e) { }
+        private void label3_Click(object sender, EventArgs e) { }
+        private void textBox2_TextChanged(object sender, EventArgs e) { }
+        private void textBox1_TextChanged(object sender, EventArgs e) { }
+        private void label4_Click(object sender, EventArgs e) { }
+        private void label5_Click(object sender, EventArgs e) { }
+        private void label6_Click(object sender, EventArgs e) { }
+
+        private void Form1_Load_1(object sender, EventArgs e) { }
 
         private void S1_Keypress(object sender, KeyPressEventArgs e) { }
         private void S1_Click(object sender, EventArgs e) { }
         private void S2_Click(object sender, EventArgs e) { }
         private void Form1_Load(object sender, EventArgs e) { }
 
+        // Отображение скорости и направления движения
         private void DrawVelocityIndicator(
-    Graphics g, float centerX, float y,
-    float velocity, string name)
+            Graphics g,
+            float centerX,
+            float y,
+            float velocity,
+            string name)
         {
-            using (Font font = new Font("Arial", 9, FontStyle.Bold))
+            using (Font font =
+                new Font("Arial", 9, FontStyle.Bold))
             using (Pen pen = new Pen(Color.Black, 2))
             using (Brush brush = new SolidBrush(Color.Black))
             {
-                string text = $"{name} = {velocity:+0.00;-0.00;0.00} м/с";
+                string text =
+                    $"{name} = {velocity:+0.00;-0.00;0.00} м/с";
+
                 SizeF textSize = g.MeasureString(text, font);
 
                 g.DrawString(
-                    text, font, brush,
-                    centerX - textSize.Width / 2f, y - 25);
+                    text,
+                    font,
+                    brush,
+                    centerX - textSize.Width / 2f,
+                    y - 25
+                );
 
                 if (Math.Abs(velocity) < 0.001f)
                     return;
@@ -542,8 +713,11 @@ namespace CartCollision
                 float direction = velocity > 0 ? 1f : -1f;
                 float length = 35f;
 
-                float startX = centerX - direction * length / 2f;
-                float endX = centerX + direction * length / 2f;
+                float startX =
+                    centerX - direction * length / 2f;
+
+                float endX =
+                    centerX + direction * length / 2f;
 
                 g.DrawLine(pen, startX, y, endX, y);
 

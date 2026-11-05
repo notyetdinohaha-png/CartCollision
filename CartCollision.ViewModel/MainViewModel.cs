@@ -11,11 +11,7 @@ namespace CartCollision.ViewModel
     public class MainViewModel : INotifyPropertyChanged
     {
         private CartModel cartModel;
-
-        private readonly List<string> trajectoryData =
-            new List<string>();
-
-        private double simulationTime;
+        private readonly List<string> trajectoryData = new List<string>();
 
         private double position1;
         private double position2;
@@ -23,11 +19,14 @@ namespace CartCollision.ViewModel
         private double velocity2;
         private double commonVelocity;
         private double time;
+
         private bool isCollided;
         private bool isRunning;
+
         private double energyBefore;
         private double energyAfter;
         private double energyLoss;
+
         private bool momentumIsCorrect;
         private bool energyLossIsConfirmed;
 
@@ -228,21 +227,25 @@ namespace CartCollision.ViewModel
             double position1,
             double position2)
         {
-            if (mass1 <= 0 || mass2 <= 0)
+            if (IsRunning)
+                throw new InvalidOperationException(
+                    "Симуляция уже запущена.");
+
+            if (mass1 <= 0 || mass2 <= 0 ||
+                double.IsNaN(mass1) || double.IsNaN(mass2) ||
+                double.IsInfinity(mass1) || double.IsInfinity(mass2))
+            {
                 throw new ArgumentException(
-                    "Массы должны быть положительными.");
+                    "Массы должны быть положительными конечными числами.");
+            }
 
             if (velocity1 <= velocity2)
                 throw new ArgumentException(
                     "При заданных скоростях тележки не столкнутся.");
 
             cartModel = new CartModel(
-                mass1,
-                velocity1,
-                mass2,
-                velocity2,
-                position1,
-                position2);
+                mass1, velocity1, mass2, velocity2,
+                position1, position2);
 
             Position1 = cartModel.Position1;
             Position2 = cartModel.Position2;
@@ -252,20 +255,19 @@ namespace CartCollision.ViewModel
 
             CommonVelocity = cartModel.CommonVelocity;
 
-            IsCollided = false;
-            IsRunning = true;
-            Time = 0;
-            simulationTime = 0;
-
             EnergyBefore = cartModel.EnergyBefore;
             EnergyAfter = cartModel.EnergyAfter;
             EnergyLoss = cartModel.EnergyLoss;
 
+            Time = 0;
+            IsCollided = false;
             MomentumIsCorrect = false;
             EnergyLossIsConfirmed = false;
 
             trajectoryData.Clear();
             OnPropertyChanged(nameof(TrajectoryCount));
+
+            IsRunning = true;
         }
 
         public void Step(double dt, double cartWidth)
@@ -287,19 +289,13 @@ namespace CartCollision.ViewModel
             CommonVelocity = cartModel.CommonVelocity;
 
             Time += dt;
-            simulationTime += dt;
 
             trajectoryData.Add(string.Join(";",
-                simulationTime.ToString(
-                    "F4", CultureInfo.InvariantCulture),
-                Position1.ToString(
-                    "F4", CultureInfo.InvariantCulture),
-                Position2.ToString(
-                    "F4", CultureInfo.InvariantCulture),
-                Velocity1.ToString(
-                    "F4", CultureInfo.InvariantCulture),
-                Velocity2.ToString(
-                    "F4", CultureInfo.InvariantCulture),
+                Time.ToString("F4", CultureInfo.InvariantCulture),
+                Position1.ToString("F4", CultureInfo.InvariantCulture),
+                Position2.ToString("F4", CultureInfo.InvariantCulture),
+                Velocity1.ToString("F4", CultureInfo.InvariantCulture),
+                Velocity2.ToString("F4", CultureInfo.InvariantCulture),
                 IsCollided ? "Да" : "Нет"
             ));
 
@@ -329,11 +325,9 @@ namespace CartCollision.ViewModel
 
             Velocity1 = 0;
             Velocity2 = 0;
-
             CommonVelocity = 0;
-            Time = 0;
 
-            simulationTime = 0;
+            Time = 0;
 
             IsCollided = false;
             IsRunning = false;
