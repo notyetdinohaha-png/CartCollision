@@ -16,14 +16,14 @@ namespace CartCollision
         public double MomentumBefore { get; private set; }
         public double MomentumAfter { get; private set; }
 
-        // Положение тележек
+        // положение тележек
         public double Position1 { get; private set; }
         public double Position2 { get; private set; }
 
-        // Произошло ли столкновение
+        // произошло ли столкновение
         public bool IsCollided { get; private set; }
 
-        // Текущие скорости
+        // текущие скорости
         public double Velocity1 { get; private set; }
         public double Velocity2 { get; private set; }
 
@@ -72,8 +72,8 @@ namespace CartCollision
             IsCollided = false;
         }
 
-        // Один шаг моделирования.
-        // cartWidth — ширина тележки в условных единицах модели.
+        // один шаг моделирования.
+        // cartWidth — ширина тележки в условных единицах модели
         public void Step(double dt, double cartWidth)
         {
             if (dt < 0 || double.IsNaN(dt) ||
@@ -96,8 +96,8 @@ namespace CartCollision
             Position1 += Velocity1 * dt;
             Position2 += Velocity2 * dt;
 
-            // Тележки движутся слева направо по координатной оси.
-            // Столкновение возможно, когда первая догоняет вторую.
+            // тележки движутся слева направо по координатной оси.
+            // столкновение возможно, когда первая догоняет вторую.
             if (Velocity1 > Velocity2 &&
                 Position1 + cartWidth >= Position2)
             {

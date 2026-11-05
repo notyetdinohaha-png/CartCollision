@@ -12,73 +12,46 @@ namespace CartCollision
 {
     public partial class Form1 : Form
     {
-        // ViewModel — единственный источник данных симуляции
+        // viewModel - источник данных симуляции
         private readonly MainViewModel viewModel = new MainViewModel();
 
-        // Цвета тележек относятся к отображению, поэтому остаются в Form1
+        // цвета тележек
         private Color color1;
         private Color color2;
 
         private const int cartWidth = 60;
         private const int cartHeight = 40;
 
-        // Параметры камеры
+        // параметры камеры
         private float cameraCenterX;
         private float cameraScale = 1.0f;
         private bool cameraLocked = false;
 
-        // Режим дня/ночи
+        // режим дня/ночи
         private bool isNightMode = true;
         private Button btnToggleTheme;
 
-        // Таймеры интерфейса
+        // таймеры интерфейса
         private readonly Stopwatch realTimer = new Stopwatch();
         private Timer simulationTimer;
 
         public Form1()
         {
+
+
             InitializeComponent();
-
-            // 1. Кнопка переключения темы — самая первая сверху
-            btnToggleTheme = new Button();
-            btnToggleTheme.Location = new Point(9, 10);
-            btnToggleTheme.Size = new Size(150, 30);
-            btnToggleTheme.Text = "🌙 Ночной режим";
-            btnToggleTheme.UseVisualStyleBackColor = true;
-            btnToggleTheme.Click += BtnToggleTheme_Click;
-            this.Controls.Add(btnToggleTheme);
-
-            // Гарантированно настраиваем кнопку Экспорт в CSV программно, чтобы она никогда не пропадала
-            if (btnExportCsv == null)
-            {
-                btnExportCsv = new Button();
-                this.Controls.Add(btnExportCsv);
-            }
-            btnExportCsv.Text = "Экспорт в CSV";
-            btnExportCsv.Size = new Size(150, 28);
-            btnExportCsv.Location = new Point(9, 373);
+            // Привязываем обе кнопки к левому нижнему углу
             btnExportCsv.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnExportCsv.UseVisualStyleBackColor = true;
-            btnExportCsv.Click += new EventHandler(this.btnExportCsv_Click);
+            Den.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
-            // Сдвигаем элементы интерфейса слева вниз, чтобы освободить место под кнопку темы
-            groupBox1.Location = new Point(groupBox1.Location.X, groupBox1.Location.Y + 38);
-            groupBox2.Location = new Point(groupBox2.Location.X, groupBox2.Location.Y + 38);
-            button1.Location = new Point(button1.Location.X, button1.Location.Y + 38);
-            btnShowCharts.Location = new Point(btnShowCharts.Location.X, btnShowCharts.Location.Y + 38);
-            btnExportCsv.Location = new Point(btnExportCsv.Location.X, btnExportCsv.Location.Y + 38);
-
-            this.ClientSize = new Size(this.ClientSize.Width, 470);
-
-            // Подписываем форму на изменения ViewModel
             viewModel.PropertyChanged += ViewModel_PropertyChanged;
 
-            // Создаём таймер анимации
+            // создаём таймер анимации
             simulationTimer = new Timer();
             simulationTimer.Interval = 50;
             simulationTimer.Tick += Timer1_Tick;
 
-            // Убираем мерцание при отрисовке
+            // убираем мерцание при отрисовке
             typeof(Panel).InvokeMember(
                 "DoubleBuffered",
                 System.Reflection.BindingFlags.SetProperty |
@@ -89,10 +62,10 @@ namespace CartCollision
                 new object[] { true }
             );
 
-            // Исправление артефактов при растягивании и развертывании на весь экран
+            // исправлены артефакты когда растягиваем и развертываем на весь экран
             panel1.Resize += (s, e) => panel1.Invalidate();
 
-            // Заполняем списки цветов
+            // Список цветов 
             string[] colors =
             {
                 "Красный",
@@ -117,11 +90,11 @@ namespace CartCollision
             color1 = MapColor(comboBox1.SelectedItem.ToString());
             color2 = MapColor(comboBox2.SelectedItem.ToString());
 
-            // Обработчики выбора цвета
+            // обработчики выбора цвета
             comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
             comboBox2.SelectedIndexChanged += comboBox2_SelectedIndexChanged;
 
-            // Начальные координаты камеры
+            // начальные координаты камеры
             cameraCenterX = 0;
             cameraScale = 1.0f;
 
@@ -131,15 +104,15 @@ namespace CartCollision
             );
         }
 
-        // Обработчик кнопки День/Ночь
-        private void BtnToggleTheme_Click(object sender, EventArgs e)
+        // обработчик кнопки День/Ночь 
+        private void Den_Click(object sender, EventArgs e)
         {
             isNightMode = !isNightMode;
-            btnToggleTheme.Text = isNightMode ? "🌙 Ночной режим" : "☀️ Дневной режим";
+            Den.Text = isNightMode ? "🌙 Ночной режим" : "☀️ Дневной режим";
             panel1.Invalidate();
         }
 
-        // Преобразование введённой строки в число
+        // преобразование введённой строки в число
         private bool TryParseFlexibleDouble(string text, out double value)
         {
             text = text.Trim().Replace(',', '.');
@@ -156,7 +129,7 @@ namespace CartCollision
                    !double.IsInfinity(value);
         }
 
-        // Кнопка запуска эксперимента
+        // кнопка запуска
         private void button1_Click(object sender, EventArgs e)
         {
             double mass1;
@@ -201,8 +174,9 @@ namespace CartCollision
                 return;
             }
 
+            //цвета по умолчанию 
             string colorName1 = comboBox1.SelectedItem?.ToString() ?? "Красный";
-            string colorName2 = comboBox2.SelectedItem?.ToString() ?? "Синий";
+            string colorName2 = comboBox2.SelectedItem?.ToString() ?? "Синий";  
 
             color1 = MapColor(colorName1);
             color2 = MapColor(colorName2);
@@ -210,8 +184,8 @@ namespace CartCollision
             if (color1 == color2)
             {
                 MessageBox.Show(
-                    "Рекомендуется выбрать разные цвета тележек.",
-                    "Внимание",
+                    "Лучше выбрать разные цвета тележек.",
+                    "Вниманииииииеееее!! аллллооо",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning
                 );
@@ -339,8 +313,12 @@ namespace CartCollision
                     float visibleLeft = cameraCenterX - panel1.Width / (2f * cameraScale);
                     float visibleRight = cameraCenterX + panel1.Width / (2f * cameraScale);
 
-                    bool movedOffScreenRight = viewModel.CommonVelocity > 0 && viewModel.Position1 > visibleRight && viewModel.Position2 > visibleRight;
-                    bool movedOffScreenLeft = viewModel.CommonVelocity < 0 && viewModel.Position1 + cartWidth < visibleLeft && viewModel.Position2 + cartWidth < visibleLeft;
+                    // теперь останавливаемся, когда тележки упираются в границы экрана своими краями, а то блин не останавливались 
+                    bool movedOffScreenRight = viewModel.CommonVelocity > 0 &&
+                        (viewModel.Position1 + cartWidth >= visibleRight || viewModel.Position2 + cartWidth >= visibleRight);
+
+                    bool movedOffScreenLeft = viewModel.CommonVelocity < 0 &&
+                        (viewModel.Position1 <= visibleLeft || viewModel.Position2 <= visibleLeft);
 
                     shouldStop = movedOffScreenRight || movedOffScreenLeft;
                 }
@@ -355,7 +333,7 @@ namespace CartCollision
             panel1.Invalidate();
         }
 
-        // Отрисовка сцены
+        // отрисовка сцены
         private void panel1_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
@@ -404,7 +382,7 @@ namespace CartCollision
 
             int groundY = panel1.Height - 60;
 
-            // Дорога / рельсы
+            // дорога отрисовывается
             using (Pen railPen = new Pen(isNightMode ? Color.FromArgb(100, 110, 120) : Color.DarkGray, 3))
             {
                 g.DrawLine(railPen, cartCenter - panelWidth * 3, groundY + cartHeight, cartCenter + panelWidth * 3, groundY + cartHeight);
@@ -422,22 +400,22 @@ namespace CartCollision
             float worldLeft = cartCenter - panelWidth * 2 / scale;
             float worldRight = cartCenter + panelWidth * 2 / scale;
 
-            // --- ФОНАРИ ---
+            // фонари
             float lampSpacing = 280f;
             float firstLampX = (float)(Math.Floor(worldLeft / lampSpacing) * lampSpacing);
             for (float lx = firstLampX; lx <= worldRight; lx += lampSpacing)
             {
                 DrawLampPost(g, lx, groundY + cartHeight, isNightMode);
             }
-
-            // --- РАЗНЫЕ ДЕРЕВЬЯ ---
+            // деревья
             float treeSpacing = 100f;
             float firstTreeX = (float)(Math.Floor(worldLeft / treeSpacing) * treeSpacing);
-            int treeIndex = 0;
+
             for (float tx = firstTreeX; tx <= worldRight; tx += treeSpacing)
             {
-                DrawVariedTree(g, tx, groundY + cartHeight, isNightMode, treeIndex % 3);
-                treeIndex++;
+                int treeType = Math.Abs((int)(tx / treeSpacing)) % 3;
+
+                DrawVariedTree(g, tx, groundY + cartHeight, isNightMode, treeType);
             }
 
             DrawDetailedCart(g, x1, groundY, color1, "№1");
@@ -446,8 +424,8 @@ namespace CartCollision
             float offset1 = viewModel.IsCollided ? -35f : 0f;
             float offset2 = viewModel.IsCollided ? 35f : 0f;
 
-            DrawVelocityIndicator(g, x1 + cartWidth / 2f + offset1, groundY - 45, v1, "v1");
-            DrawVelocityIndicator(g, x2 + cartWidth / 2f + offset2, groundY - 45, v2, "v2");
+            DrawVelocityIndicator(g, x1 + cartWidth / 2f + offset1, groundY - 45, v1, "v1", isNightMode);
+            DrawVelocityIndicator(g, x2 + cartWidth / 2f + offset2, groundY - 45, v2, "v2", isNightMode);
 
             if (viewModel.IsCollided)
             {
@@ -888,11 +866,15 @@ namespace CartCollision
             float centerX,
             float y,
             float velocity,
-            string name)
+            string name,
+            bool nightMode) // принимаем ночной режим
         {
+            //  цвет темы и текста от времени дня 
+            Color textColor = nightMode ? Color.White : Color.Black;
+
             using (Font font = new Font("Arial", 9, FontStyle.Bold))
-            using (Pen pen = new Pen(Color.Black, 2))
-            using (Brush brush = new SolidBrush(Color.Black))
+            using (Pen pen = new Pen(textColor, 2))
+            using (Brush brush = new SolidBrush(textColor))
             {
                 string text = $"{name} = {velocity:+0.00;-0.00;0.00} м/с";
                 SizeF textSize = g.MeasureString(text, font);
